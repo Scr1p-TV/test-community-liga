@@ -1004,7 +1004,7 @@ function selectLoginPlayer(i, el){
   document.getElementById('loginPwInput').focus();
 }
 
-function attemptNormalLogin(){
+function attemptLogin(){
   const pw = document.getElementById('loginPwInput').value.trim().toUpperCase();
   const errEl = document.getElementById('loginError');
 
@@ -1228,3 +1228,401 @@ function renderPool(){
   }).join('');
 }
 
+
+// ══════════════════════════════════════
+//  RESULTS
+// ══════════════════════════════════════
+function renderResults(){
+  const el = document.getElementById('resultsGrid');
+  const title = document.getElementById('resultsTitle');
+  title.textContent = 'Ergebnisse – ' + state.matchday;
+  if(!state.participants.length || state.draft.phase === 'idle'){
+    el.innerHTML = '<div class="empty-state">Noch kein Draft durchgeführt.</div>'; return;
+  }
+  el.innerHTML = state.participants.map((p,i) => {
+    const ban  = state.draft.bans[i];
+    const pick = state.draft.picks[i];
+    const banPlayer  = ban  !== undefined ? state.pool.find(x => x.name === ban)  : null;
+    const pickPlayer = pick !== undefined ? state.pool.find(x => x.name === pick) : null;
+    return `<div class="result-card">
+      <div class="result-card-hd">
+        <div class="result-name">${p.name}</div>
+      </div>
+      <div class="result-body">
+        <div class="result-row">
+          <span class="result-type ban">BAN</span>
+          <span class="result-player">${ban || '—'}</span>
+          <span class="result-rating">${banPlayer ? banPlayer.rating : ''}</span>
+        </div>
+        <div class="result-row">
+          <span class="result-type pick">PICK</span>
+          <span class="result-player">${pick || '—'}</span>
+          <span class="result-rating">${pickPlayer ? pickPlayer.rating : ''}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function exportResults(){
+  const data = {
+    matchday: state.matchday,
+    results: state.participants.map((p,i) => ({
+      name: p.name,
+      ban: state.draft.bans[i] || null,
+      pick: state.draft.picks[i] || null
+    }))
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'draft-ergebnisse.json';
+  a.click();
+}
+
+// ══════════════════════════════════════
+//  FINAL 4
+// ══════════════════════════════════════
+let f4State = {
+  players: [],   // [{name, password, pts}]
+  pool: [],
+  picks: {},     // {playerIdx: [playerName, ...]}
+  order: [],     // snake draft order indices
+  step: 0,
+  history: []
+};
+let f4Filter = 'ALL';
+let f4LoggedIn = null;
+
+function renderF4Setup(){
+  const el = document.getElementById('f4PlayerSelect');
+  const ligaPlayers = loadLigaPlayers();
+  const pMap = {};
+  ligaPlayers.forEach(p => { pMap[p.name] = p; });
+
+  const allPlayers = state.participants.map((p,i) => {
+    const ligaP = pMap[p.name];
+    return { ...p, pts: ligaP ? (ligaP.pts || ligaP.points || 0) : 0, idx: i };
+  }).sort((a,b) => b.pts - a.pts);
+
+  if(!allPlayers.length){
+    el.innerHTML = '<div class="empty-state">Erst Teilnehmer im Admin-Tab anlegen.</div>';
+    document.getElementById('f4SetupInfo').textContent = 'Keine Teilnehmer vorhanden';
+    return;
+  }
+
+  el.innerHTML = allPlayers.map((p,i) => {
+    const init = p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const ligaP = pMap[p.name];
+    const av = (ligaP && ligaP.avatar)
+      ? `<img src="${ligaP.avatar}" style="width:100%;height:100%;object-fit:cover" alt="">`
+      : init;
+    const sel = f4State.players.find(x => x.name === p.name) ? 'selected' : '';
+    return `<div class="f4-player-select ${sel}" onclick="toggleF4Player('${p.name.replace(/'/g,"\\'")}',this)">
+      <div class="f4ps-init">${av}</div>
+      <div class="f4ps-name">${p.name}</div>
+      <div class="f4ps-pts">${p.pts} Pts</div>
+    </div>`;
+  }).join('');
+  updateF4SetupInfo();
+}
+
+function toggleF4Player(name, el){
+  const idx = f4State.players.findIndex(p => p.name === name);
+  if(idx >= 0){
+    f4State.players.splice(idx, 1);
+    el.classList.remove('selected');
+  } else {
+    if(f4State.players.length >= 4){ showToast('Max. 4 Spieler','ban'); return; }
+    const p = state.participants.find(x => x.name === name);
+    if(p) f4State.players.push({ ...p });
+    el.classList.add('selected');
+  }
+  updateF4SetupInfo();
+}
+
+function updateF4SetupInfo(){
+  const n = f4State.players.length;
+  const info = document.getElementById('f4SetupInfo');
+  const btn  = document.getElementById('f4StartBtn');
+  info.textContent = n < 4 ? `Noch ${4-n} Spieler auswählen` : '✓ 4 Spieler ausgewählt – bereit!';
+  btn.disabled = n !== 4;
+  btn.style.opacity = n === 4 ? '1' : '.5';
+}
+
+function startFinal4(){
+  if(f4State.players.length !== 4) return;
+  // Snake draft order for 18 rounds: 0,1,2,3,3,2,1,0,0,1,2,3,...
+  const order = [];
+  for(let r=0; r<18; r++){
+    const fwd = r % 2 === 0;
+    order.push(fwd ? r%4 : 3 - (r%4));
+  }
+  // Actually build proper snake
+  const snakeOrder = [];
+  for(let r=0; r<18; r++){
+    if(r%2===0) snakeOrder.push(r%4 === 0 ? 0 : r%4 === 2 ? 0 : 0);
+  }
+  // Simple snake: rounds alternate direction
+  const picks = [];
+  for(let r=0;r<18;r++){
+    const seg = [];
+    for(let i=0;i<4;i++) seg.push(r%2===0 ? i : 3-i);
+    picks.push(...seg);
+  }
+  f4State.pool = [...state.pool];
+  f4State.picks = {0:[],1:[],2:[],3:[]};
+  f4State.order = picks;
+  f4State.step = 0;
+  f4State.history = [];
+  f4LoggedIn = null;
+
+  document.getElementById('f4-setup').style.display  = 'none';
+  document.getElementById('f4-active').style.display = 'block';
+  document.getElementById('f4-done').style.display   = 'none';
+  renderF4Draft();
+  showF4Login();
+}
+
+function currentF4Turn(){
+  if(f4State.step >= f4State.order.length) return { done:true, playerIdx:-1 };
+  return { done:false, playerIdx: f4State.order[f4State.step] };
+}
+
+function showF4Login(){
+  const { done, playerIdx } = currentF4Turn();
+  if(done){ finishF4(); return; }
+  f4LoggedIn = null;
+  const overlay = document.getElementById('loginOverlay');
+  overlay.classList.add('open','f4-mode');
+  document.getElementById('loginPhaseHint').textContent = 'Final 4 Draft – wähle deinen Namen und gib dein Passwort ein';
+  // Render login grid with f4 players
+  const grid = document.getElementById('loginPlayerGrid');
+  grid.innerHTML = f4State.players.map((p,i) => {
+    const isActive = i === playerIdx;
+    const init = p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return `<div class="login-player-btn ${isActive?'selected':''}" onclick="selectF4LoginPlayer(${i},this)">
+      <div class="lp-init">${init}</div>
+      <div class="lp-name">${p.name}</div>
+      ${isActive ? '<div style="font-size:.6rem;color:var(--gold)">Du bist dran</div>' : ''}
+    </div>`;
+  }).join('');
+  document.getElementById('loginPwInput').value = '';
+  document.getElementById('loginError').textContent = '';
+  // Override login button for f4 mode
+  document.querySelector('.login-overlay .btn-accent').onclick = attemptF4Login;
+  document.getElementById('loginPwInput').onkeydown = e => { if(e.key==='Enter') attemptF4Login(); };
+  setTimeout(()=>document.getElementById('loginPwInput').focus(),120);
+}
+
+let selectedF4LoginIdx = null;
+function selectF4LoginPlayer(i, el){
+  selectedF4LoginIdx = i;
+  document.querySelectorAll('#loginPlayerGrid .login-player-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginPwInput').focus();
+}
+
+function attemptF4Login(){
+  const pw = document.getElementById('loginPwInput').value.trim().toUpperCase();
+  const errEl = document.getElementById('loginError');
+  if(selectedF4LoginIdx === null){ errEl.textContent = 'Bitte Namen wählen.'; return; }
+  if(!pw){ errEl.textContent = 'Passwort eingeben.'; return; }
+  const { playerIdx } = currentF4Turn();
+  if(selectedF4LoginIdx !== playerIdx){
+    errEl.textContent = 'Du bist nicht dran. Warten auf: ' + f4State.players[playerIdx].name; return;
+  }
+  const p = f4State.players[selectedF4LoginIdx];
+  if(pw !== p.password){
+    errEl.textContent = 'Falsches Passwort.';
+    document.getElementById('loginPwInput').value = '';
+    document.getElementById('loginPwInput').focus();
+    return;
+  }
+  f4LoggedIn = selectedF4LoginIdx;
+  selectedF4LoginIdx = null;
+  document.getElementById('loginOverlay').classList.remove('open','f4-mode');
+  // restore normal login handler
+  document.querySelector('.login-overlay .btn-accent').onclick = attemptLogin;
+  document.getElementById('loginPwInput').onkeydown = e => { if(e.key==='Enter') attemptLogin(); };
+  showToast(p.name + ' – du bist dran!', 'pick');
+}
+
+function handleF4Pick(playerName){
+  const { done, playerIdx } = currentF4Turn();
+  if(done) return;
+  if(f4LoggedIn !== playerIdx){ showF4Login(); return; }
+  const alreadyPicked = Object.values(f4State.picks).flat().includes(playerName);
+  if(alreadyPicked) return;
+  f4State.picks[playerIdx].push(playerName);
+  f4State.history.push({ playerIdx, playerName });
+  f4LoggedIn = null;
+  f4State.step++;
+  renderF4Draft();
+  if(currentF4Turn().done){ finishF4(); return; }
+  setTimeout(showF4Login, 600);
+}
+
+function undoF4(){
+  if(!f4State.history.length) return;
+  const last = f4State.history.pop();
+  const arr = f4State.picks[last.playerIdx];
+  arr.splice(arr.indexOf(last.playerName),1);
+  f4State.step--;
+  f4LoggedIn = null;
+  renderF4Draft();
+  showToast('Rückgängig','');
+  setTimeout(showF4Login, 600);
+}
+
+function confirmResetF4(){
+  if(confirm('Final 4 Draft zurücksetzen?')) resetF4Setup();
+}
+
+function resetF4Setup(){
+  f4State = { players:[], pool:[], picks:{}, order:[], step:0, history:[] };
+  f4LoggedIn = null;
+  document.getElementById('f4-setup').style.display  = 'block';
+  document.getElementById('f4-active').style.display = 'none';
+  document.getElementById('f4-done').style.display   = 'none';
+  renderF4Setup();
+}
+
+function renderF4Draft(){
+  const { done, playerIdx } = currentF4Turn();
+  const round = Math.floor(f4State.step / 4) + 1;
+  document.getElementById('f4RoundInfo').textContent = `Runde ${Math.min(round,18)} von 18 · Snake-Draft`;
+  document.getElementById('f4TurnName').textContent  = done ? 'Fertig!' : f4State.players[playerIdx]?.name || '—';
+  document.getElementById('f4TurnLabel').textContent = done ? 'ABGESCHLOSSEN' : 'AM ZUG';
+
+  // Progress
+  const pb = document.getElementById('f4ProgressBar');
+  pb.innerHTML = f4State.order.map((_,i) => {
+    let cls = 'prog-step';
+    if(i < f4State.step) cls += ' pick-done';
+    else if(i === f4State.step && !done) cls += ' active';
+    return `<div class="${cls}"></div>`;
+  }).join('');
+
+  // Teams
+  const layout = document.getElementById('f4TeamsLayout');
+  layout.innerHTML = f4State.players.map((p,i) => {
+    const isActive = !done && i === playerIdx;
+    const myPicks = f4State.picks[i] || [];
+    const picksHtml = myPicks.map((name,n) => {
+      const pl = f4State.pool.find(x=>x.name===name);
+      return `<div class="f4-pick-row">
+        <span class="f4-pick-num">${n+1}</span>
+        <span class="f4-pick-name">${name}</span>
+        <span class="f4-pick-pos">${pl?.pos||''}</span>
+        <span class="f4-pick-rating">${pl?.rating||''}</span>
+      </div>`;
+    }).join('');
+    return `<div class="f4-team-panel ${isActive?'f4-team-active':''}">
+      <div class="f4-team-header">
+        <div class="f4-team-name">${p.name}</div>
+        <div class="f4-team-count">${myPicks.length}/18</div>
+      </div>
+      <div class="f4-picks-list">${picksHtml || '<div class="empty-state" style="padding:.75rem">Noch keine Picks</div>'}</div>
+    </div>`;
+  }).join('');
+
+  renderF4Pool();
+}
+
+function setF4Filter(f, el){
+  f4Filter = f;
+  document.querySelectorAll('#page-final4 .filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderF4Pool();
+}
+
+function renderF4Pool(){
+  const search = (document.getElementById('f4PoolSearch')?.value||'').toLowerCase();
+  const grid = document.getElementById('f4PlayerGrid');
+  if(!grid) return;
+  const pickedNames = new Set(Object.values(f4State.picks).flat());
+  const { done } = currentF4Turn();
+  const filtered = f4State.pool.filter(p => {
+    if(search && !p.name.toLowerCase().includes(search)) return false;
+    if(f4Filter !== 'ALL' && !(POS_GROUPS[f4Filter]||[]).includes(p.pos)) return false;
+    return true;
+  });
+  if(!filtered.length){ grid.innerHTML = '<div class="empty-state">Keine Spieler</div>'; return; }
+  grid.innerHTML = filtered.map(p => {
+    const isPicked = pickedNames.has(p.name);
+    const init = p.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const av = p.img ? `<img src="${p.img}" style="width:100%;height:100%;object-fit:cover" alt="">` : init;
+    const cls = 'ppool-card' + (isPicked?' picked':'');
+    const click = (!isPicked && !done)
+      ? ` onclick="handleF4Pick(this.dataset.name)" data-name="${p.name.replace(/"/g,'&quot;')}"` : '';
+    return `<div class="${cls}"${click}>
+      <div class="pp-avatar">${av}</div>
+      <div class="pp-name">${p.name}</div>
+      <div class="pp-pos">${p.pos}</div>
+      <div class="pp-rating">${p.rating}</div>
+    </div>`;
+  }).join('');
+}
+
+function finishF4(){
+  document.getElementById('f4-active').style.display = 'none';
+  document.getElementById('f4-done').style.display   = 'block';
+  const grid = document.getElementById('f4ResultsGrid');
+  grid.innerHTML = f4State.players.map((p,i) => {
+    const myPicks = f4State.picks[i]||[];
+    return `<div class="result-card">
+      <div class="result-card-hd"><div class="result-name">${p.name}</div></div>
+      <div class="result-body">
+        ${myPicks.map((name,n) => {
+          const pl = f4State.pool.find(x=>x.name===name);
+          return `<div class="result-row">
+            <span class="result-type pick">${n+1}</span>
+            <span class="result-player">${name}</span>
+            <span class="result-rating">${pl?.rating||''}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function exportF4Results(){
+  const data = {
+    type: 'Final4',
+    matchday: state.matchday,
+    results: f4State.players.map((p,i) => ({ name:p.name, picks: f4State.picks[i]||[] }))
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'final4-ergebnisse.json';
+  a.click();
+}
+
+// ══════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════
+let toastTimer = null;
+function showToast(msg, type){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' '+type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 2600);
+}
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+document.addEventListener('DOMContentLoaded', ()=>{
+  updateLigaImportBanner();
+  checkReady();
+  renderAdminPool();
+  renderParticipantAdmin();
+  document.getElementById('seasonLabel').textContent = state.matchday;
+});
+</script>
+</body>
+</html>
