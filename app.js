@@ -3,6 +3,7 @@ import {
   getDatabase, ref, onValue, push, set, get, update, remove
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { firebaseConfig } from "./firebase-config.js";
+import { DEFAULT_PLAYERS } from "./players.js";
 
 // ============================================================
 // INIT
@@ -94,14 +95,18 @@ function loadCommissionerPanel() {
   get(ref(db, 'draftConfig')).then(snap => {
     const c = snap.val();
     if (!c) {
-      addTeamRow(); addTeamRow(); addTeamRow(); addTeamRow(); // default 4 teams
+      addTeamRow(); addTeamRow(); addTeamRow(); addTeamRow();
+      document.getElementById('playerPool').value = DEFAULT_PLAYERS.join('
+');
       return;
     }
     document.getElementById('numTeams').value   = c.numTeams   || 8;
     document.getElementById('numRounds').value  = c.numRounds  || 5;
     document.getElementById('timerSeconds').value = c.timerSeconds || 90;
     document.getElementById('snakeToggle').checked = c.snake ?? true;
-    if (c.playerPool) document.getElementById('playerPool').value = c.playerPool.join('\n');
+    const pool = (c.playerPool && c.playerPool.length > 0) ? c.playerPool : DEFAULT_PLAYERS;
+    document.getElementById('playerPool').value = pool.join('
+');
 
     const list = document.getElementById('teamList');
     list.innerHTML = '';
