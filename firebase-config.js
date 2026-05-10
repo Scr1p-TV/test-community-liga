@@ -1,6 +1,4 @@
-// FIREBASE CONFIG EINTRAGEN
-// Diese Daten bekommst du aus Firebase Console
-
+// FIREBASE CONFIG — deine Zugangsdaten aus der Firebase Console
 export const firebaseConfig = {
   apiKey: "AIzaSyAXwz7M6dEqAocdjCrJA7nE46NIizPmQlk",
   authDomain: "ufl-community-draft.firebaseapp.com",

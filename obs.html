@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8"/>
+  <title>UFL Draft – OBS Overlay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: transparent;
+      font-family: 'Inter', sans-serif;
+      color: white;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ---- TOP BAR ---- */
+    #topBar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 70px;
+      background: linear-gradient(90deg, rgba(0,0,0,0.92) 0%, rgba(15,23,42,0.88) 60%, transparent 100%);
+      display: flex;
+      align-items: center;
+      padding: 0 30px;
+      gap: 30px;
+      border-bottom: 2px solid rgba(250,204,21,0.6);
+    }
+
+    .obs-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 36px;
+      letter-spacing: 4px;
+      color: #facc15;
+    }
+
+    .obs-logo span { color: white; }
+
+    #obsCurrentPick {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #94a3b8;
+    }
+
+    #obsOnTheClock {
+      font-size: 20px;
+      font-weight: 700;
+      color: #facc15;
+    }
+
+    .obs-timer-wrap {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #obsTimer {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 52px;
+      color: white;
+      min-width: 70px;
+      text-align: right;
+      transition: color 0.3s;
+    }
+
+    #obsTimer.urgent { color: #ef4444; animation: pulse 0.5s infinite alternate; }
+
+    @keyframes pulse { from { opacity: 1; } to { opacity: 0.4; } }
+
+    .obs-timer-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
+    /* ---- RECENT PICKS TICKER ---- */
+    #bottomBar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 56px;
+      background: linear-gradient(90deg, rgba(0,0,0,0.92) 0%, rgba(15,23,42,0.85) 100%);
+      border-top: 2px solid rgba(250,204,21,0.4);
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .ticker-label {
+      flex-shrink: 0;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 3px;
+      color: #facc15;
+      padding: 0 20px;
+      border-right: 1px solid rgba(255,255,255,0.15);
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    #ticker {
+      display: flex;
+      gap: 0;
+      animation: tickerScroll 30s linear infinite;
+      white-space: nowrap;
+    }
+
+    @keyframes tickerScroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .ticker-pick {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 30px;
+      font-size: 15px;
+      font-weight: 600;
+      border-right: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .ticker-pick .num {
+      color: #facc15;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+    }
+
+    .ticker-pick .team { color: #94a3b8; }
+    .ticker-pick .player { color: white; }
+
+    /* ---- SIDE PANEL (last 5 picks) ---- */
+    #sidePanel {
+      position: absolute;
+      top: 80px;
+      right: 30px;
+      width: 300px;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid rgba(250,204,21,0.3);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(8px);
+    }
+
+    .side-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 3px;
+      color: #facc15;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(250,204,21,0.2);
+      padding-bottom: 8px;
+    }
+
+    .side-pick {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      animation: slideIn 0.4s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .side-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      color: #facc15;
+      width: 30px;
+      flex-shrink: 0;
+    }
+
+    .side-info { flex: 1; }
+    .side-player { font-weight: 700; font-size: 15px; }
+    .side-team { font-size: 12px; color: #94a3b8; margin-top: 1px; }
+
+    /* ---- PICK FLASH ---- */
+    #pickFlash {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border: 3px solid #facc15;
+      border-radius: 20px;
+      padding: 40px 60px;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 0 80px rgba(250,204,21,0.4);
+    }
+
+    #pickFlash.active {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .flash-badge {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 16px;
+      letter-spacing: 4px;
+      color: #facc15;
+      margin-bottom: 8px;
+    }
+
+    .flash-team {
+      font-size: 18px;
+      color: #94a3b8;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .flash-player {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 64px;
+      letter-spacing: 2px;
+      color: white;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div id="topBar">
+    <div class="obs-logo">UFL<span>DRAFT</span></div>
+    <div>
+      <div id="obsCurrentPick">Runde <span id="obsRound">1</span> · Pick <span id="obsPickNum">1</span></div>
+      <div id="obsOnTheClock">On the Clock: <span id="obsTeam">—</span></div>
+    </div>
+    <div class="obs-timer-wrap">
+      <div id="obsTimer">90</div>
+      <div class="obs-timer-label">Sek.</div>
+    </div>
+  </div>
+
+  <!-- Side Panel -->
+  <div id="sidePanel">
+    <div class="side-title">Letzte Picks</div>
+    <div id="sidePicks"></div>
+  </div>
+
+  <!-- Bottom Ticker -->
+  <div id="bottomBar">
+    <div class="ticker-label">PICKS</div>
+    <div id="ticker"></div>
+  </div>
+
+  <!-- Pick Flash -->
+  <div id="pickFlash">
+    <div class="flash-badge">PICK <span id="flashPickNum"></span></div>
+    <div class="flash-team" id="flashTeam"></div>
+    <div class="flash-player" id="flashPlayer"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { firebaseConfig } from "./firebase-config.js";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let lastPickCount = 0;
+
+    function buildTicker(picks) {
+      const doubled = [...picks, ...picks]; // infinite loop trick
+      return doubled.map(p =>
+        `<span class="ticker-pick">
+          <span class="num">${p.pickNumber}</span>
+          <span class="team">${p.team}</span>
+          <span class="player">→ ${p.player}</span>
+        </span>`
+      ).join('');
+    }
+
+    function buildSidePicks(picks) {
+      const last5 = picks.slice(-5).reverse();
+      return last5.map(p => `
+        <div class="side-pick">
+          <div class="side-num">${p.pickNumber}</div>
+          <div class="side-info">
+            <div class="side-player">${p.player}</div>
+            <div class="side-team">${p.team}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function showPickFlash(pick) {
+      document.getElementById('flashPickNum').textContent = pick.pickNumber;
+      document.getElementById('flashTeam').textContent = pick.team;
+      document.getElementById('flashPlayer').textContent = pick.player;
+      const el = document.getElementById('pickFlash');
+      el.classList.add('active');
+      setTimeout(() => el.classList.remove('active'), 3500);
+    }
+
+    // Timer sync
+    onValue(ref(db, 'draftState'), snap => {
+      const state = snap.val() || {};
+      const timerEl = document.getElementById('obsTimer');
+      const t = state.timerValue ?? 90;
+      timerEl.textContent = t;
+      timerEl.classList.toggle('urgent', t <= 10);
+
+      const totalPicks = state.currentPick ?? 1;
+      const rounds = state.numRounds ?? 1;
+      const teams = state.numTeams ?? 8;
+      const round = Math.ceil(totalPicks / teams);
+      const pickInRound = ((totalPicks - 1) % teams) + 1;
+
+      document.getElementById('obsRound').textContent = round;
+      document.getElementById('obsPickNum').textContent = totalPicks;
+      document.getElementById('obsTeam').textContent = state.onTheClock ?? '—';
+    });
+
+    // Picks sync
+    onValue(ref(db, 'draftPicks'), snap => {
+      const data = snap.val() || {};
+      const picks = Object.values(data).map((p, i) => ({ ...p, pickNumber: i + 1 }));
+
+      if (picks.length > lastPickCount && lastPickCount > 0) {
+        showPickFlash(picks[picks.length - 1]);
+      }
+      lastPickCount = picks.length;
+
+      document.getElementById('ticker').innerHTML = picks.length
+        ? buildTicker(picks)
+        : '<span class="ticker-pick"><span class="player">Noch keine Picks</span></span>';
+
+      document.getElementById('sidePicks').innerHTML = buildSidePicks(picks);
+    });
+  </script>
+</body>
+</html>

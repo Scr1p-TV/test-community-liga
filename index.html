@@ -4,34 +4,166 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>UFL Community Draft</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <header>
-    <h1>UFL Community Draft</h1>
-    <div id="timer">90</div>
-  </header>
 
-  <main>
-    <section class="panel">
-      <h2>Draft Board</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Pick</th>
-            <th>Team</th>
-            <th>Spieler</th>
-          </tr>
-        </thead>
-        <tbody id="draftBoard"></tbody>
-      </table>
-    </section>
+  <!-- ===== LOGIN SCREEN ===== -->
+  <div id="loginScreen" class="screen active">
+    <div class="login-box">
+      <div class="login-logo">UFL<span>DRAFT</span></div>
+      <p class="login-sub">Wähle dein Team und tritt dem Draft bei</p>
 
-    <section class="panel">
-      <h2>Verfügbare Spieler</h2>
-      <div id="players"></div>
-    </section>
-  </main>
+      <div class="form-group">
+        <label>Team Name</label>
+        <input type="text" id="loginTeamName" placeholder="z.B. FC Machtlos" maxlength="30"/>
+      </div>
+      <div class="form-group">
+        <label>Passwort</label>
+        <input type="password" id="loginPassword" placeholder="Team-Passwort"/>
+      </div>
+      <div id="loginError" class="error-msg"></div>
+      <button class="btn-primary" onclick="handleLogin()">Einloggen</button>
+
+      <div class="divider">oder</div>
+      <button class="btn-ghost" onclick="showCommissionerLogin()">Commissioner Login</button>
+    </div>
+  </div>
+
+  <!-- ===== COMMISSIONER SETUP SCREEN ===== -->
+  <div id="commissionerScreen" class="screen">
+    <div class="commissioner-box">
+      <button class="back-btn" onclick="showScreen('loginScreen')">← Zurück</button>
+      <h2>⚙️ Commissioner Panel</h2>
+
+      <div class="form-group">
+        <label>Commissioner Passwort</label>
+        <input type="password" id="commPassword" placeholder="Admin-Passwort"/>
+        <div id="commError" class="error-msg"></div>
+        <button class="btn-primary" onclick="commLogin()">Einloggen</button>
+      </div>
+
+      <div id="commPanel" style="display:none">
+        <hr/>
+        <h3>Draft Konfiguration</h3>
+
+        <div class="form-group">
+          <label>Anzahl Teams</label>
+          <input type="number" id="numTeams" min="2" max="32" value="8" />
+        </div>
+        <div class="form-group">
+          <label>Spieler pro Team (Runden)</label>
+          <input type="number" id="numRounds" min="1" max="20" value="5" />
+        </div>
+        <div class="form-group">
+          <label>Timer (Sekunden pro Pick)</label>
+          <input type="number" id="timerSeconds" min="10" max="300" value="90" />
+        </div>
+        <div class="form-group">
+          <label>Snake Draft aktivieren</label>
+          <label class="toggle">
+            <input type="checkbox" id="snakeToggle" checked/>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <h3>Teams verwalten</h3>
+        <div id="teamList" class="team-list"></div>
+        <button class="btn-secondary" onclick="addTeamRow()">+ Team hinzufügen</button>
+
+        <h3>Spieler-Pool</h3>
+        <textarea id="playerPool" rows="8" placeholder="Einen Spieler pro Zeile...">Mbappe
+Haaland
+Rodri
+Bellingham
+Vinicius Jr
+Musiala
+Pedri
+Salah
+De Bruyne
+Kvaratskhelia</textarea>
+
+        <div class="comm-actions">
+          <button class="btn-primary" onclick="saveDraftConfig()">💾 Konfiguration speichern</button>
+          <button class="btn-danger" onclick="resetDraft()">🗑️ Draft zurücksetzen</button>
+          <button class="btn-warning" onclick="skipCurrentPick()">⏭️ Pick überspringen</button>
+          <button class="btn-ghost" onclick="showScreen('draftScreen')">📋 Zum Draft Board</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DRAFT SCREEN ===== -->
+  <div id="draftScreen" class="screen">
+    <header>
+      <div class="header-left">
+        <div class="logo">UFL<span>DRAFT</span></div>
+        <div id="currentPickInfo" class="pick-info"></div>
+      </div>
+      <div class="header-center">
+        <div id="timer" class="timer">90</div>
+        <div class="timer-label">SEKUNDEN</div>
+      </div>
+      <div class="header-right">
+        <div id="userInfo" class="user-info"></div>
+        <button class="btn-ghost small" onclick="showScreen('loginScreen')">Abmelden</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Draft Board -->
+      <section class="panel" id="boardPanel">
+        <h2>Draft Board</h2>
+        <div id="roundTabs" class="round-tabs"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Team</th>
+              <th>Spieler</th>
+            </tr>
+          </thead>
+          <tbody id="draftBoard"></tbody>
+        </table>
+      </section>
+
+      <!-- Right Column -->
+      <div class="right-col">
+        <!-- Available Players -->
+        <section class="panel">
+          <h2>Verfügbare Spieler</h2>
+          <input type="text" id="playerSearch" placeholder="Spieler suchen..." oninput="filterPlayers()" class="search-input"/>
+          <div id="players"></div>
+        </section>
+
+        <!-- Pick Queue -->
+        <section class="panel queue-panel">
+          <h2>📋 Meine Pick Queue</h2>
+          <p class="queue-hint">Klicke "In Queue" um Spieler vorzumerken</p>
+          <div id="pickQueue"></div>
+          <div id="queueEmpty" class="queue-empty">Keine Spieler in der Queue</div>
+        </section>
+
+        <!-- On the Clock -->
+        <section class="panel">
+          <h2>🕐 Reihenfolge</h2>
+          <div id="draftOrder"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- ===== PICK ANIMATION OVERLAY ===== -->
+  <div id="pickOverlay" class="pick-overlay">
+    <div class="pick-card">
+      <div class="pick-badge">PICK <span id="overlayPickNum"></span></div>
+      <div class="pick-team" id="overlayTeam"></div>
+      <div class="pick-player" id="overlayPlayer"></div>
+      <div class="pick-round" id="overlayRound"></div>
+    </div>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>
