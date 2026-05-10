@@ -104,7 +104,8 @@ function loadCommissionerPanel() {
     document.getElementById('numRounds').value  = c.numRounds  || 5;
     document.getElementById('timerSeconds').value = c.timerSeconds || 90;
     document.getElementById('snakeToggle').checked = c.snake ?? true;
-    const pool = (c.playerPool && c.playerPool.length > 0) ? c.playerPool : DEFAULT_PLAYERS;
+    // Nutze DEFAULT_PLAYERS außer Commissioner hat eigene große Liste gespeichert
+    const pool = (c.playerPool && c.playerPool.length > 20) ? c.playerPool : DEFAULT_PLAYERS;
     document.getElementById('playerPool').value = pool.join('
 ');
 
