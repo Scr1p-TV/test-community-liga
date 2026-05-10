@@ -96,8 +96,7 @@ function loadCommissionerPanel() {
     const c = snap.val();
     if (!c) {
       addTeamRow(); addTeamRow(); addTeamRow(); addTeamRow();
-      document.getElementById('playerPool').value = DEFAULT_PLAYERS.join('
-');
+      document.getElementById('playerPool').value = DEFAULT_PLAYERS.join('\n');
       return;
     }
     document.getElementById('numTeams').value   = c.numTeams   || 8;
@@ -106,8 +105,7 @@ function loadCommissionerPanel() {
     document.getElementById('snakeToggle').checked = c.snake ?? true;
     // Nutze DEFAULT_PLAYERS außer Commissioner hat eigene große Liste gespeichert
     const pool = (c.playerPool && c.playerPool.length > 20) ? c.playerPool : DEFAULT_PLAYERS;
-    document.getElementById('playerPool').value = pool.join('
-');
+    document.getElementById('playerPool').value = pool.join('\n');
 
     const list = document.getElementById('teamList');
     list.innerHTML = '';
