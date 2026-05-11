@@ -6,7 +6,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin:0; padding:0; box-sizing:border-box; }
 
     body {
       background: transparent;
@@ -18,36 +18,52 @@
       position: relative;
     }
 
-    /* ---- TOP BAR ---- */
+    /* ════════════════════════════════
+       TOP BAR
+    ════════════════════════════════ */
     #topBar {
       position: absolute;
       top: 0; left: 0; right: 0;
-      height: 70px;
-      background: linear-gradient(90deg, rgba(0,0,0,0.92) 0%, rgba(15,23,42,0.88) 60%, transparent 100%);
+      height: 72px;
+      background: linear-gradient(90deg, rgba(8,14,26,0.96) 0%, rgba(15,25,41,0.92) 70%, transparent 100%);
+      border-bottom: 2px solid rgba(250,204,21,0.5);
       display: flex;
       align-items: center;
       padding: 0 30px;
       gap: 30px;
-      border-bottom: 2px solid rgba(250,204,21,0.6);
+      z-index: 10;
     }
 
     .obs-logo {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 36px;
-      letter-spacing: 4px;
-      color: #facc15;
+      font-size: 38px;
+      letter-spacing: 5px;
+      color: white;
+      flex-shrink: 0;
     }
+    .obs-logo span { color: #facc15; }
 
-    .obs-logo span { color: white; }
+    .obs-phase-badge {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 15px;
+      letter-spacing: 3px;
+      padding: 4px 14px;
+      border-radius: 20px;
+      flex-shrink: 0;
+    }
+    .obs-phase-badge.secure { background: rgba(167,139,250,0.2); color: #a78bfa; border: 1px solid rgba(167,139,250,0.4); }
+    .obs-phase-badge.ban    { background: rgba(249,115,22,0.2);  color: #f97316; border: 1px solid rgba(249,115,22,0.4); }
+    .obs-phase-badge.draft  { background: rgba(250,204,21,0.2);  color: #facc15; border: 1px solid rgba(250,204,21,0.4); }
+    .obs-phase-badge.done   { background: rgba(34,197,94,0.2);   color: #22c55e; border: 1px solid rgba(34,197,94,0.4); }
 
     #obsCurrentPick {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 2px;
-      color: #94a3b8;
+      color: #64748b;
+      line-height: 1.4;
     }
-
     #obsOnTheClock {
       font-size: 20px;
       font-weight: 700;
@@ -60,210 +76,246 @@
       align-items: center;
       gap: 10px;
     }
-
     #obsTimer {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 52px;
+      font-size: 56px;
       color: white;
-      min-width: 70px;
+      min-width: 75px;
       text-align: right;
       transition: color 0.3s;
     }
-
     #obsTimer.urgent { color: #ef4444; animation: pulse 0.5s infinite alternate; }
+    @keyframes pulse { from { opacity:1; } to { opacity:0.3; } }
+    .obs-timer-label { font-size: 11px; font-weight: 600; letter-spacing: 2px; color: #64748b; text-transform: uppercase; }
 
-    @keyframes pulse { from { opacity: 1; } to { opacity: 0.4; } }
-
-    .obs-timer-label {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 2px;
-      color: #64748b;
-      text-transform: uppercase;
-    }
-
-    /* ---- RECENT PICKS TICKER ---- */
+    /* ════════════════════════════════
+       BOTTOM TICKER
+    ════════════════════════════════ */
     #bottomBar {
       position: absolute;
       bottom: 0; left: 0; right: 0;
-      height: 56px;
-      background: linear-gradient(90deg, rgba(0,0,0,0.92) 0%, rgba(15,23,42,0.85) 100%);
-      border-top: 2px solid rgba(250,204,21,0.4);
+      height: 54px;
+      background: linear-gradient(90deg, rgba(8,14,26,0.96) 0%, rgba(15,25,41,0.9) 100%);
+      border-top: 2px solid rgba(250,204,21,0.35);
       display: flex;
       align-items: center;
       overflow: hidden;
+      z-index: 10;
     }
-
     .ticker-label {
       flex-shrink: 0;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 22px;
-      letter-spacing: 3px;
-      color: #facc15;
-      padding: 0 20px;
-      border-right: 1px solid rgba(255,255,255,0.15);
-      height: 100%;
-      display: flex;
-      align-items: center;
-    }
-
-    #ticker {
-      display: flex;
-      gap: 0;
-      animation: tickerScroll 30s linear infinite;
-      white-space: nowrap;
-    }
-
-    @keyframes tickerScroll {
-      0%   { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
-
-    .ticker-pick {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 0 30px;
-      font-size: 15px;
-      font-weight: 600;
-      border-right: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .ticker-pick .num {
-      color: #facc15;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 18px;
-    }
-
-    .ticker-pick .team { color: #94a3b8; }
-    .ticker-pick .player { color: white; }
-
-    /* ---- SIDE PANEL (last 5 picks) ---- */
-    #sidePanel {
-      position: absolute;
-      top: 80px;
-      right: 30px;
-      width: 300px;
-      background: rgba(0,0,0,0.75);
-      border: 1px solid rgba(250,204,21,0.3);
-      border-radius: 12px;
-      padding: 16px;
-      backdrop-filter: blur(8px);
-    }
-
-    .side-title {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 20px;
       letter-spacing: 3px;
       color: #facc15;
-      margin-bottom: 12px;
-      border-bottom: 1px solid rgba(250,204,21,0.2);
-      padding-bottom: 8px;
-    }
-
-    .side-pick {
+      padding: 0 20px;
+      border-right: 1px solid rgba(255,255,255,0.12);
+      height: 100%;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      animation: slideIn 0.4s ease;
     }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateX(20px); }
-      to   { opacity: 1; transform: translateX(0); }
+    #tickerTrack {
+      display: flex;
+      gap: 0;
+      animation: tickerScroll 40s linear infinite;
+      white-space: nowrap;
     }
+    @keyframes tickerScroll { 0% { transform:translateX(0); } 100% { transform:translateX(-50%); } }
+    .ticker-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 28px;
+      font-size: 14px;
+      font-weight: 600;
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .ticker-item .t-icon  { font-size: 13px; }
+    .ticker-item .t-team  { color: #94a3b8; }
+    .ticker-item .t-arrow { color: #475569; }
+    .ticker-item .t-player { color: white; }
+    .ticker-item.secure .t-icon { color: #a78bfa; }
+    .ticker-item.ban    .t-icon { color: #f97316; }
+    .ticker-item.draft  .t-icon { color: #facc15; }
 
-    .side-num {
+    /* ════════════════════════════════
+       RESULTS PANEL — right side
+    ════════════════════════════════ */
+    #resultsPanel {
+      position: absolute;
+      top: 82px;
+      right: 24px;
+      width: 460px;
+      bottom: 64px;
+      background: rgba(8,14,26,0.88);
+      border: 1px solid rgba(250,204,21,0.25);
+      border-radius: 14px;
+      backdrop-filter: blur(10px);
+      overflow-y: auto;
+      padding: 16px;
+      z-index: 5;
+    }
+    .results-title {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 22px;
+      letter-spacing: 3px;
       color: #facc15;
-      width: 30px;
+      border-bottom: 1px solid rgba(250,204,21,0.2);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .team-block {
+      margin-bottom: 14px;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      overflow: hidden;
+      animation: slideIn 0.4s ease;
+    }
+    @keyframes slideIn { from { opacity:0; transform:translateX(16px); } to { opacity:1; transform:translateX(0); } }
+
+    .team-header {
+      background: rgba(255,255,255,0.05);
+      padding: 8px 12px;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .team-header .team-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #facc15;
       flex-shrink: 0;
     }
 
-    .side-info { flex: 1; }
-    .side-player { font-weight: 700; font-size: 15px; }
-    .side-team { font-size: 12px; color: #94a3b8; margin-top: 1px; }
+    .team-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px;
+      font-size: 13px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .team-row .row-icon  { font-size: 13px; width: 18px; flex-shrink: 0; }
+    .team-row .row-type  { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; width: 48px; flex-shrink: 0; }
+    .team-row .row-player { font-weight: 600; flex: 1; }
+    .team-row.type-secure { background: rgba(167,139,250,0.06); }
+    .team-row.type-ban    { background: rgba(249,115,22,0.06); }
+    .team-row.type-draft  { background: rgba(250,204,21,0.04); }
+    .team-row.type-secure .row-type  { color: #a78bfa; }
+    .team-row.type-ban    .row-type  { color: #f97316; }
+    .team-row.type-draft  .row-type  { color: #facc15; }
+    .team-row.empty .row-player { color: #475569; font-style: italic; }
 
-    /* ---- PICK FLASH ---- */
+    /* ════════════════════════════════
+       RECENT PICKS — left side
+    ════════════════════════════════ */
+    #recentPanel {
+      position: absolute;
+      top: 82px;
+      left: 24px;
+      width: 300px;
+      background: rgba(8,14,26,0.82);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      backdrop-filter: blur(8px);
+      overflow: hidden;
+      z-index: 5;
+    }
+    .recent-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 3px;
+      color: #64748b;
+      padding: 12px 16px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .recent-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      animation: slideIn 0.4s ease;
+    }
+    .recent-icon { font-size: 14px; flex-shrink: 0; }
+    .recent-info { flex: 1; }
+    .recent-player { font-weight: 700; font-size: 14px; }
+    .recent-team   { font-size: 11px; color: #64748b; margin-top: 1px; }
+    .recent-type   { font-family: 'Bebas Neue', sans-serif; font-size: 16px; flex-shrink: 0; }
+    .recent-type.secure { color: #a78bfa; }
+    .recent-type.ban    { color: #f97316; }
+    .recent-type.draft  { color: #facc15; }
+
+    /* ════════════════════════════════
+       PICK FLASH
+    ════════════════════════════════ */
     #pickFlash {
       position: absolute;
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       transform: translate(-50%, -50%) scale(0.8);
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      background: linear-gradient(135deg, #080e1a 0%, #0f1929 100%);
       border: 3px solid #facc15;
       border-radius: 20px;
-      padding: 40px 60px;
+      padding: 44px 70px;
       text-align: center;
       opacity: 0;
       pointer-events: none;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: 0 0 80px rgba(250,204,21,0.4);
+      transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow: 0 0 100px rgba(250,204,21,0.35);
+      z-index: 20;
     }
+    #pickFlash.active { opacity:1; transform:translate(-50%,-50%) scale(1); }
+    #pickFlash.type-ban    { border-color: #f97316; box-shadow: 0 0 100px rgba(249,115,22,0.35); }
+    #pickFlash.type-secure { border-color: #a78bfa; box-shadow: 0 0 100px rgba(167,139,250,0.35); }
 
-    #pickFlash.active {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-
-    .flash-badge {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 16px;
-      letter-spacing: 4px;
-      color: #facc15;
-      margin-bottom: 8px;
-    }
-
-    .flash-team {
-      font-size: 18px;
-      color: #94a3b8;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-
-    .flash-player {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 64px;
-      letter-spacing: 2px;
-      color: white;
-      line-height: 1;
-    }
+    .flash-badge  { font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:5px; color:#facc15; margin-bottom:10px; }
+    .flash-team   { font-size:17px; color:#94a3b8; font-weight:600; margin-bottom:6px; }
+    .flash-player { font-family:'Bebas Neue',sans-serif; font-size:70px; letter-spacing:2px; color:white; line-height:1; }
+    #pickFlash.type-ban    .flash-badge { color:#f97316; }
+    #pickFlash.type-secure .flash-badge { color:#a78bfa; }
   </style>
 </head>
 <body>
 
-  <!-- Top Bar -->
+  <!-- TOP BAR -->
   <div id="topBar">
     <div class="obs-logo">UFL<span>DRAFT</span></div>
+    <div id="obsPhaseBadge" class="obs-phase-badge draft">DRAFT</div>
     <div>
-      <div id="obsCurrentPick">Runde <span id="obsRound">1</span> · Pick <span id="obsPickNum">1</span></div>
+      <div id="obsCurrentPick">Runde <span id="obsRound">—</span> &middot; Pick <span id="obsPickNum">—</span></div>
       <div id="obsOnTheClock">On the Clock: <span id="obsTeam">—</span></div>
     </div>
     <div class="obs-timer-wrap">
-      <div id="obsTimer">90</div>
+      <div id="obsTimer">—</div>
       <div class="obs-timer-label">Sek.</div>
     </div>
   </div>
 
-  <!-- Side Panel -->
-  <div id="sidePanel">
-    <div class="side-title">Letzte Picks</div>
-    <div id="sidePicks"></div>
+  <!-- RECENT PICKS LEFT -->
+  <div id="recentPanel">
+    <div class="recent-title">ZULETZT</div>
+    <div id="recentItems"></div>
   </div>
 
-  <!-- Bottom Ticker -->
+  <!-- RESULTS PANEL RIGHT -->
+  <div id="resultsPanel">
+    <div class="results-title">TEAM ÜBERSICHT</div>
+    <div id="teamBlocks"></div>
+  </div>
+
+  <!-- BOTTOM TICKER -->
   <div id="bottomBar">
-    <div class="ticker-label">PICKS</div>
-    <div id="ticker"></div>
+    <div class="ticker-label">LIVE</div>
+    <div id="tickerTrack"></div>
   </div>
 
-  <!-- Pick Flash -->
+  <!-- PICK FLASH -->
   <div id="pickFlash">
-    <div class="flash-badge">PICK <span id="flashPickNum"></span></div>
-    <div class="flash-team" id="flashTeam"></div>
+    <div class="flash-badge" id="flashBadge">PICK 1</div>
+    <div class="flash-team"  id="flashTeam"></div>
     <div class="flash-player" id="flashPlayer"></div>
   </div>
 
@@ -273,78 +325,231 @@
     import { firebaseConfig } from "./firebase-config.js";
 
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const db  = getDatabase(app);
 
-    let lastPickCount = 0;
+    // ── State ──
+    let teams        = [];
+    let securePicks  = {};   // team -> player
+    let banPicks     = {};   // team -> player
+    let draftPicks   = {};   // team -> [players]
+    let lastTotal    = 0;
 
-    function buildTicker(picks) {
-      const doubled = [...picks, ...picks]; // infinite loop trick
-      return doubled.map(p =>
-        `<span class="ticker-pick">
-          <span class="num">${p.pickNumber}</span>
-          <span class="team">${p.team}</span>
-          <span class="player">→ ${p.player}</span>
-        </span>`
-      ).join('');
-    }
+    // ── Phase labels ──
+    const PHASE_LABELS = {
+      securePick: { text: "SECURE PICK", cls: "secure" },
+      ban:        { text: "BAN PHASE",   cls: "ban"    },
+      draft:      { text: "DRAFT",       cls: "draft"  }
+    };
 
-    function buildSidePicks(picks) {
-      const last5 = picks.slice(-5).reverse();
-      return last5.map(p => `
-        <div class="side-pick">
-          <div class="side-num">${p.pickNumber}</div>
-          <div class="side-info">
-            <div class="side-player">${p.player}</div>
-            <div class="side-team">${p.team}</div>
-          </div>
-        </div>
-      `).join('');
-    }
+    // ── Firebase: config ──
+    onValue(ref(db, "draftConfig"), snap => {
+      const c = snap.val();
+      if (!c) return;
+      teams = (c.teams || []).map(t => t.name);
+      renderTeamBlocks();
+    });
 
-    function showPickFlash(pick) {
-      document.getElementById('flashPickNum').textContent = pick.pickNumber;
-      document.getElementById('flashTeam').textContent = pick.team;
-      document.getElementById('flashPlayer').textContent = pick.player;
-      const el = document.getElementById('pickFlash');
-      el.classList.add('active');
-      setTimeout(() => el.classList.remove('active'), 3500);
-    }
+    // ── Firebase: state (timer, phase, on the clock) ──
+    onValue(ref(db, "draftState"), snap => {
+      const state = snap.val();
+      if (!state) return;
 
-    // Timer sync
-    onValue(ref(db, 'draftState'), snap => {
-      const state = snap.val() || {};
-      const timerEl = document.getElementById('obsTimer');
-      const t = state.timerValue ?? 90;
+      // Phase badge
+      const phase = state.phase || "draft";
+      const pl    = PHASE_LABELS[phase] || PHASE_LABELS.draft;
+      const badge = document.getElementById("obsPhaseBadge");
+      badge.textContent = pl.text;
+      badge.className   = "obs-phase-badge " + pl.cls;
+
+      // Timer
+      const t       = state.timerValue ?? "—";
+      const timerEl = document.getElementById("obsTimer");
       timerEl.textContent = t;
-      timerEl.classList.toggle('urgent', t <= 10);
+      timerEl.classList.toggle("urgent", typeof t === "number" && t <= 10);
 
-      const totalPicks = state.currentPick ?? 1;
-      const rounds = state.numRounds ?? 1;
-      const teams = state.numTeams ?? 8;
-      const round = Math.ceil(totalPicks / teams);
-      const pickInRound = ((totalPicks - 1) % teams) + 1;
-
-      document.getElementById('obsRound').textContent = round;
-      document.getElementById('obsPickNum').textContent = totalPicks;
-      document.getElementById('obsTeam').textContent = state.onTheClock ?? '—';
-    });
-
-    // Picks sync
-    onValue(ref(db, 'draftPicks'), snap => {
-      const data = snap.val() || {};
-      const picks = Object.values(data).map((p, i) => ({ ...p, pickNumber: i + 1 }));
-
-      if (picks.length > lastPickCount && lastPickCount > 0) {
-        showPickFlash(picks[picks.length - 1]);
+      // Pick info
+      const numTeams = state.numTeams || 1;
+      if (state.currentPick) {
+        const round = Math.ceil(state.currentPick / numTeams);
+        document.getElementById("obsRound").textContent   = round;
+        document.getElementById("obsPickNum").textContent = state.currentPick;
+      } else {
+        document.getElementById("obsRound").textContent   = "—";
+        document.getElementById("obsPickNum").textContent = "—";
       }
-      lastPickCount = picks.length;
-
-      document.getElementById('ticker').innerHTML = picks.length
-        ? buildTicker(picks)
-        : '<span class="ticker-pick"><span class="player">Noch keine Picks</span></span>';
-
-      document.getElementById('sidePicks').innerHTML = buildSidePicks(picks);
+      document.getElementById("obsTeam").textContent = state.onTheClock || "—";
     });
+
+    // ── Firebase: secure picks ──
+    onValue(ref(db, "securePicks"), snap => {
+      const data = snap.val() || {};
+      securePicks = {};
+      Object.values(data).forEach(p => { securePicks[p.team] = p.player; });
+      renderTeamBlocks();
+      rebuildTicker();
+    });
+
+    // ── Firebase: ban picks ──
+    onValue(ref(db, "banPicks"), snap => {
+      const data = snap.val() || {};
+      banPicks = {};
+      Object.values(data).forEach(b => { banPicks[b.team] = b.player; });
+      renderTeamBlocks();
+      rebuildTicker();
+    });
+
+    // ── Firebase: draft picks ──
+    let lastDraftCount = 0;
+    onValue(ref(db, "draftPicks"), snap => {
+      const data = snap.val() || {};
+      draftPicks = {};
+      const all  = Object.values(data).map((p, i) => ({ ...p, num: i + 1 }));
+
+      all.forEach(p => {
+        if (!draftPicks[p.team]) draftPicks[p.team] = [];
+        draftPicks[p.team].push(p.player);
+      });
+
+      // New pick animation
+      if (all.length > lastDraftCount && lastDraftCount >= 0) {
+        const newest = all[all.length - 1];
+        if (newest) showFlash("PICK " + newest.num, newest.team, newest.player, "type-draft");
+      }
+      lastDraftCount = all.length;
+
+      renderTeamBlocks();
+      renderRecent(all, "draft");
+      rebuildTicker();
+    });
+
+    // ── TEAM BLOCKS (results panel) ──
+    function renderTeamBlocks() {
+      const el = document.getElementById("teamBlocks");
+      if (!el || teams.length === 0) return;
+      el.innerHTML = "";
+
+      teams.forEach(team => {
+        const block = document.createElement("div");
+        block.className = "team-block";
+
+        // Header
+        const header = document.createElement("div");
+        header.className = "team-header";
+        const dot = document.createElement("div"); dot.className = "team-dot";
+        const nameEl = document.createElement("span"); nameEl.textContent = team;
+        header.appendChild(dot); header.appendChild(nameEl);
+        block.appendChild(header);
+
+        // Secure pick row
+        const secRow = makeRow("🔒", "SECURE", securePicks[team] || null, "type-secure");
+        block.appendChild(secRow);
+
+        // Ban row
+        const banRow = makeRow("🚫", "BAN", banPicks[team] || null, "type-ban");
+        block.appendChild(banRow);
+
+        // Draft pick rows
+        const picks = draftPicks[team] || [];
+        if (picks.length > 0) {
+          picks.forEach((player, i) => {
+            const draftRow = makeRow("🏆", "PICK " + (i + 1), player, "type-draft");
+            block.appendChild(draftRow);
+          });
+        } else {
+          const draftRow = makeRow("🏆", "PICK", null, "type-draft");
+          block.appendChild(draftRow);
+        }
+
+        el.appendChild(block);
+      });
+    }
+
+    function makeRow(icon, typeLabel, player, typeClass) {
+      const row = document.createElement("div");
+      row.className = "team-row " + typeClass + (player ? "" : " empty");
+      const iconEl   = document.createElement("span"); iconEl.className = "row-icon";   iconEl.textContent = icon;
+      const typeEl   = document.createElement("span"); typeEl.className = "row-type";   typeEl.textContent = typeLabel;
+      const playerEl = document.createElement("span"); playerEl.className = "row-player"; playerEl.textContent = player || "Ausstehend...";
+      row.appendChild(iconEl); row.appendChild(typeEl); row.appendChild(playerEl);
+      return row;
+    }
+
+    // ── RECENT ITEMS ──
+    function renderRecent(draftAll, type) {
+      const el = document.getElementById("recentItems");
+      if (!el) return;
+
+      // Merge all events into a unified recent list
+      const events = [];
+
+      Object.entries(securePicks).forEach(([team, player]) => {
+        events.push({ type: "secure", icon: "🔒", team, player, typeLabel: "SECURE" });
+      });
+      Object.entries(banPicks).forEach(([team, player]) => {
+        events.push({ type: "ban", icon: "🚫", team, player, typeLabel: "BAN" });
+      });
+      draftAll.forEach(p => {
+        events.push({ type: "draft", icon: "🏆", team: p.team, player: p.player, typeLabel: "PICK " + p.num });
+      });
+
+      // Show last 7
+      const recent = events.slice(-7).reverse();
+      el.innerHTML = "";
+      recent.forEach(e => {
+        const item = document.createElement("div"); item.className = "recent-item";
+        const iconEl   = document.createElement("div"); iconEl.className = "recent-icon"; iconEl.textContent = e.icon;
+        const infoEl   = document.createElement("div"); infoEl.className = "recent-info";
+        const playerEl = document.createElement("div"); playerEl.className = "recent-player"; playerEl.textContent = e.player;
+        const teamEl   = document.createElement("div"); teamEl.className = "recent-team"; teamEl.textContent = e.team;
+        infoEl.appendChild(playerEl); infoEl.appendChild(teamEl);
+        const typeEl = document.createElement("div"); typeEl.className = "recent-type " + e.type; typeEl.textContent = e.typeLabel;
+        item.appendChild(iconEl); item.appendChild(infoEl); item.appendChild(typeEl);
+        el.appendChild(item);
+      });
+    }
+
+    // ── TICKER ──
+    function rebuildTicker() {
+      const events = [];
+      Object.entries(securePicks).forEach(([team, player]) => {
+        events.push({ cls: "secure", icon: "🔒", team, player });
+      });
+      Object.entries(banPicks).forEach(([team, player]) => {
+        events.push({ cls: "ban", icon: "🚫", team, player });
+      });
+      Object.values(draftPicks).forEach((picks, ti) => {
+        picks.forEach(player => {
+          events.push({ cls: "draft", icon: "🏆", team: teams[ti] || "?", player });
+        });
+      });
+
+      if (events.length === 0) {
+        document.getElementById("tickerTrack").innerHTML =
+          '<span class="ticker-item"><span class="t-player">Noch keine Picks...</span></span>';
+        return;
+      }
+
+      // Double for infinite scroll
+      const doubled = [...events, ...events];
+      document.getElementById("tickerTrack").innerHTML = doubled.map(e =>
+        `<span class="ticker-item ${e.cls}">
+          <span class="t-icon">${e.icon}</span>
+          <span class="t-team">${e.team}</span>
+          <span class="t-arrow">→</span>
+          <span class="t-player">${e.player}</span>
+        </span>`
+      ).join("");
+    }
+
+    // ── PICK FLASH ──
+    function showFlash(badge, team, player, typeClass) {
+      const el = document.getElementById("pickFlash");
+      document.getElementById("flashBadge").textContent  = badge;
+      document.getElementById("flashTeam").textContent   = team;
+      document.getElementById("flashPlayer").textContent = player;
+      el.className = "active " + typeClass;
+      setTimeout(() => { el.classList.remove("active"); }, 3500);
+    }
   </script>
 </body>
 </html>
