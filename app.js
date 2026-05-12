@@ -291,9 +291,15 @@ function initSecurePick() {
 }
 
 function subscribeSecureStatus() {
+  var lastSecureCount = 0;
   onValue(ref(db, "securePicks"), function(snap) {
     var data  = snap.val() || {};
     var picks = Object.values(data);
+    if (picks.length > lastSecureCount && lastSecureCount >= 0) {
+      var newest = picks[picks.length - 1];
+      if (newest) showPickAnimation({ pickNumber: picks.length, team: newest.team, player: newest.player, round: "" }, "SECURE");
+    }
+    lastSecureCount = picks.length;
     allSecurePicks = picks;
     get(ref(db, "draftConfig")).then(function(cSnap) {
       var c = cSnap.val();
@@ -471,7 +477,7 @@ function subscribeBanPicks() {
   onValue(ref(db, "banPicks"), function(snap) {
     var data = snap.val() || {};
     var bans = Object.values(data).map(function(b, i) { return Object.assign({}, b, { num: i + 1 }); });
-    if (bans.length > lastBanCount && lastBanCount > 0) showPickAnimation(bans[bans.length - 1], "BAN");
+    if (bans.length > lastBanCount && lastBanCount >= 0) showPickAnimation(bans[bans.length - 1], "BAN");
     lastBanCount = bans.length;
     allBans = bans;
     var tbody = document.getElementById("banBoard");
@@ -808,10 +814,24 @@ window.removeFromQueue = function(player) {
 // ── ANIMATION ──
 function showPickAnimation(pick, type) {
   var overlay = document.getElementById("pickOverlay");
-  document.getElementById("overlayBadge").textContent  = type + " " + (pick.pickNumber || pick.num || "");
+  var card    = overlay.querySelector(".pick-card");
+
+  // Badge text
+  var badgeText = type === "SECURE" ? "🔒 SECURE PICK" : type === "BAN" ? "🚫 BAN " + (pick.num || "") : "PICK " + (pick.pickNumber || "");
+  document.getElementById("overlayBadge").textContent  = badgeText;
   document.getElementById("overlayTeam").textContent   = pick.team;
   document.getElementById("overlayPlayer").textContent = pick.player;
-  document.getElementById("overlayRound").textContent  = type === "BAN" ? "Ban Phase" : "Runde " + (pick.round || "");
+  document.getElementById("overlayRound").textContent  =
+    type === "BAN"    ? "Ban Phase" :
+    type === "SECURE" ? "Secure Pick" :
+    "Runde " + (pick.round || "");
+
+  // Color per type
+  card.classList.remove("card-secure", "card-ban", "card-draft");
+  if (type === "SECURE") card.classList.add("card-secure");
+  else if (type === "BAN") card.classList.add("card-ban");
+  else card.classList.add("card-draft");
+
   overlay.classList.add("active");
   setTimeout(function() { overlay.classList.remove("active"); }, 3500);
   overlay.onclick = function() { overlay.classList.remove("active"); };
