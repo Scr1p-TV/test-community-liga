@@ -28,9 +28,22 @@ let phaseSubscribed = false;
 // SCREENS
 // ─────────────────────────────────────────────────────────────
 window.showScreen = function(id) {
+  // After login, only commissioner can navigate freely
+  // Teams are locked to their current phase screen
+  var freeScreens = ["loginScreen", "commissionerScreen"];
+  if (currentUser && !currentUser.isCommissioner && !freeScreens.includes(id)) {
+    // Teams can only be sent to phase screens by the system, not manually
+    return;
+  }
   document.querySelectorAll(".screen").forEach(function(s) { s.classList.remove("active"); });
   document.getElementById(id).classList.add("active");
 };
+
+// Internal navigation — bypasses lock, used by system only
+function goToScreen(id) {
+  document.querySelectorAll(".screen").forEach(function(s) { s.classList.remove("active"); });
+  document.getElementById(id).classList.add("active");
+}
 
 // ─────────────────────────────────────────────────────────────
 // LOGIN
@@ -53,7 +66,7 @@ window.handleLogin = async function() {
   if (team.password && team.password !== pw) { err.textContent = "Falsches Passwort."; return; }
 
   currentUser = { team: team.name, isCommissioner: false };
-  enterApp();
+  enterAppInternal();
 };
 
 window.showCommissionerLogin = function() { showScreen("commissionerScreen"); };
@@ -220,15 +233,19 @@ function enterApp() {
     });
     routeToPhase(phase);
     subscribeToPhaseChanges();
-    // Always subscribe to secure picks so allSecurePicks stays updated
     subscribeAllSecurePicks();
   });
 }
 
+function enterAppInternal() {
+  if (!currentUser) return;
+  enterApp();
+}
+
 function routeToPhase(phase) {
-  if (phase === "securePick") { showScreen("securePickScreen"); initSecurePick(); }
-  else if (phase === "ban")   { showScreen("banScreen");        initBan(); }
-  else                        { showScreen("draftScreen");      initDraft(); }
+  if (phase === "securePick") { goToScreen("securePickScreen"); initSecurePick(); }
+  else if (phase === "ban")   { goToScreen("banScreen");        initBan(); }
+  else                        { goToScreen("draftScreen");      initDraft(); }
 }
 
 function subscribeToPhaseChanges() {
@@ -295,22 +312,32 @@ function subscribeSecureStatus() {
   onValue(ref(db, "securePicks"), function(snap) {
     var data  = snap.val() || {};
     var picks = Object.values(data);
-    if (picks.length > lastSecureCount && lastSecureCount >= 0) {
-      var newest = picks[picks.length - 1];
-      if (newest) showPickAnimation({ pickNumber: picks.length, team: newest.team, player: newest.player, round: "" }, "SECURE");
-    }
-    lastSecureCount = picks.length;
+
+    // Only update allSecurePicks — DON'T expose names to teams before reveal
     allSecurePicks = picks;
+
     get(ref(db, "draftConfig")).then(function(cSnap) {
       var c = cSnap.val();
       if (!c) return;
-      var el = document.getElementById("secureStatus");
-      if (el) el.textContent = picks.length + " / " + c.teams.length + " Teams haben gewählt";
+      var total = c.teams.length;
+      var el    = document.getElementById("secureStatus");
+
+      // Show only COUNT, never names
+      if (el) el.textContent = picks.length + " / " + total + " Teams haben gewählt";
     });
+
+    // Show my own pick confirmation — but nothing about others
     if (mySecurePick) {
       document.getElementById("secureMyPick").style.display = "block";
       document.getElementById("secureMyPickName").textContent = mySecurePick;
     }
+
+    // Animation only for commissioner (they see everything)
+    if (picks.length > lastSecureCount && lastSecureCount >= 0 && currentUser && currentUser.isCommissioner) {
+      var newest = picks[picks.length - 1];
+      if (newest) showPickAnimation({ pickNumber: picks.length, team: newest.team, player: newest.player, round: "" }, "SECURE");
+    }
+    lastSecureCount = picks.length;
   });
 }
 
