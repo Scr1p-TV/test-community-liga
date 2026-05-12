@@ -45,6 +45,25 @@ function goToScreen(id) {
   document.getElementById(id).classList.add("active");
 }
 
+// Commissioner back button — goes back to commissioner panel
+window.commGoBack = function() {
+  if (!currentUser || !currentUser.isCommissioner) return;
+  goToScreen("commissionerScreen");
+};
+
+// Show/hide commissioner buttons and logout button based on role
+function applyRoleUI() {
+  var isComm = currentUser && currentUser.isCommissioner;
+  // Commissioner back buttons
+  ["commBackSecure", "commBackBan", "commBackDraft"].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = isComm ? "inline-flex" : "none";
+  });
+  // Logout button only for teams, not commissioner
+  var logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) logoutBtn.style.display = (!isComm && currentUser) ? "inline-flex" : "none";
+}
+
 // ─────────────────────────────────────────────────────────────
 // LOGIN
 // ─────────────────────────────────────────────────────────────
@@ -231,6 +250,7 @@ function enterApp() {
       var el = document.getElementById(id);
       if (el) el.innerHTML = label;
     });
+    applyRoleUI();
     routeToPhase(phase);
     subscribeToPhaseChanges();
     subscribeAllSecurePicks();

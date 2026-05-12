@@ -97,6 +97,7 @@
       </div>
       <div class="header-right">
         <div id="secureUserInfo" class="user-info"></div>
+        <button id="commBackSecure" class="btn-ghost small comm-only" onclick="commGoBack()" style="display:none">⚙️ Panel</button>
       </div>
     </header>
     <main class="single-col">
@@ -138,6 +139,7 @@
       </div>
       <div class="header-right">
         <div id="banUserInfo" class="user-info"></div>
+        <button id="commBackBan" class="btn-ghost small comm-only" onclick="commGoBack()" style="display:none">⚙️ Panel</button>
       </div>
     </header>
     <main>
@@ -175,7 +177,8 @@
       </div>
       <div class="header-right">
         <div id="userInfo" class="user-info"></div>
-        <button class="btn-ghost small" onclick="showScreen('loginScreen')">Abmelden</button>
+        <button id="commBackDraft" class="btn-ghost small comm-only" onclick="commGoBack()" style="display:none">⚙️ Panel</button>
+        <button id="logoutBtn" class="btn-ghost small" onclick="showScreen('loginScreen')" style="display:none">Abmelden</button>
       </div>
     </header>
     <main>
