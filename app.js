@@ -8,7 +8,7 @@ import { DEFAULT_PLAYERS } from "./players.js";
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
-const COMMISSIONER_PASSWORD = "21j!w7La15A1hD";
+const COMMISSIONER_PASSWORD = "admin1234";
 
 let currentUser     = null;
 let draftConfig     = null;
@@ -160,7 +160,10 @@ window.saveDraftConfig = async function() {
   await remove(ref(db, "securePicks"));
   await remove(ref(db, "draftPicks"));
   await remove(ref(db, "banPicks"));
-  alert("Konfiguration gespeichert! Secure Pick Phase ist bereit.");
+  await set(ref(db, "readyTeams"), null);
+  // Set phase to lobby so teams see the ready screen
+  await update(ref(db, "draftState"), { phase: "lobby" });
+  alert("Konfiguration gespeichert! Teams können sich jetzt einloggen und bereit machen.");
 };
 
 window.resetDraft = async function() {
@@ -176,6 +179,8 @@ window.resetDraft = async function() {
     numTeams: c.numTeams, numRounds: c.numRounds, snake: c.snake,
     teamNames: c.teams.map(function(t) { return t.name; })
   });
+  await set(ref(db, "readyTeams"), null);
+  await update(ref(db, "draftState"), { phase: "lobby" });
   mySecurePick = null;
   alert("Zurückgesetzt.");
 };
@@ -196,8 +201,9 @@ window.commForcePhase = async function(phase) {
   var teamNames = c.teams.map(function(t) { return t.name; });
 
   if (phase === "securePick") {
-    await update(ref(db, "draftState"), { phase: "securePick", timerValue: c.timerSeconds });
+    await set(ref(db, "readyTeams"), null);
     await remove(ref(db, "securePicks"));
+    await update(ref(db, "draftState"), { phase: "securePick", timerValue: c.timerSeconds, secureRevealed: false, secureConflicts: [] });
   } else if (phase === "ban") {
     var banOrder = teamNames.slice();
     await update(ref(db, "draftState"), { phase: "ban", timerValue: c.timerSeconds, banOrder: banOrder, currentBan: 1, onTheClock: banOrder[0] });
@@ -208,7 +214,7 @@ window.commForcePhase = async function(phase) {
       order: pickOrder, currentPick: 1, totalPicks: teamNames.length * c.numRounds, onTheClock: pickOrder[0]
     });
   }
-  enterApp();
+  enterAppInternal();
 };
 
 window.revealSecurePicks = async function() {
@@ -244,14 +250,17 @@ function buildSnakeOrder(teamNames, rounds, snake) {
 function enterApp() {
   get(ref(db, "draftState")).then(function(snap) {
     var state = snap.val();
-    var phase = state ? state.phase : "securePick";
+    var phase = state ? state.phase : "lobby";
     var label = currentUser.isCommissioner ? "<strong>Commissioner</strong>" : "Eingeloggt als <strong>" + currentUser.team + "</strong>";
     ["secureUserInfo", "banUserInfo", "userInfo"].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.innerHTML = label;
     });
     applyRoleUI();
+
+    // Route based on phase
     routeToPhase(phase);
+
     subscribeToPhaseChanges();
     subscribeAllSecurePicks();
   });
@@ -263,7 +272,8 @@ function enterAppInternal() {
 }
 
 function routeToPhase(phase) {
-  if (phase === "securePick") { goToScreen("securePickScreen"); initSecurePick(); }
+  if (phase === "lobby")      { goToScreen("lobbyScreen");      initLobby(); }
+  else if (phase === "securePick") { goToScreen("securePickScreen"); initSecurePick(); }
   else if (phase === "ban")   { goToScreen("banScreen");        initBan(); }
   else                        { goToScreen("draftScreen");      initDraft(); }
 }
@@ -307,6 +317,98 @@ function startTimer(displayId, onExpire) {
     if (timerValue % 5 === 0) update(ref(db, "draftState"), { timerValue: timerValue });
   }, 1000);
 }
+
+// ─────────────────────────────────────────────────────────────
+// LOBBY — Ready Up
+// ─────────────────────────────────────────────────────────────
+function initLobby() {
+  // Show correct view for commissioner vs team
+  var commView = document.getElementById("lobbyCommView");
+  var teamView = document.getElementById("lobbyTeamView");
+  if (commView) commView.style.display = currentUser.isCommissioner ? "block" : "none";
+  if (teamView) teamView.style.display = currentUser.isCommissioner ? "none"  : "block";
+
+  subscribeLobbyReady();
+}
+
+function subscribeLobbyReady() {
+  onValue(ref(db, "readyTeams"), function(snap) {
+    var data      = snap.val() || {};
+    var readyList = Object.values(data); // [{ team }]
+
+    get(ref(db, "draftConfig")).then(function(cSnap) {
+      var c      = cSnap.val();
+      var teams  = c ? c.teams.map(function(t) { return t.name; }) : [];
+      var total  = teams.length;
+      var ready  = readyList.map(function(r) { return r.team; });
+      var allReady = total > 0 && ready.length >= total;
+
+      // Update ready count
+      var countEl = document.getElementById("readyCount");
+      if (countEl) countEl.textContent = ready.length + " / " + total + " bereit";
+
+      // Update ready list
+      var listEl = document.getElementById("readyList");
+      if (listEl) {
+        listEl.innerHTML = "";
+        teams.forEach(function(team) {
+          var isReady = ready.includes(team);
+          var item    = document.createElement("div");
+          item.className = "ready-item" + (isReady ? " is-ready" : "");
+          var nameEl   = document.createElement("span"); nameEl.className = "ri-name"; nameEl.textContent = team;
+          var statusEl = document.createElement("span"); statusEl.className = "ri-status";
+          statusEl.textContent = isReady ? "✅ Bereit" : "⏳ Wartet...";
+          item.appendChild(nameEl); item.appendChild(statusEl);
+          listEl.appendChild(item);
+        });
+      }
+
+      // Commissioner: enable start button only when all ready
+      var startBtn  = document.getElementById("startDraftBtn");
+      var startHint = document.getElementById("startHint");
+      if (startBtn) startBtn.disabled = !allReady;
+      if (startHint) {
+        startHint.textContent = allReady
+          ? "Alle Teams sind bereit — Draft kann starten!"
+          : (total - ready.length) + " Team(s) noch nicht bereit.";
+        startHint.style.color = allReady ? "#22c55e" : "";
+      }
+
+      // Team: show ready confirm if already clicked
+      if (!currentUser.isCommissioner) {
+        var myReady = ready.includes(currentUser.team);
+        var readyBtn     = document.getElementById("readyBtn");
+        var readyConfirm = document.getElementById("readyConfirm");
+        if (readyBtn)     readyBtn.style.display     = myReady ? "none"  : "block";
+        if (readyConfirm) readyConfirm.style.display = myReady ? "block" : "none";
+      }
+    });
+  });
+}
+
+window.setReady = async function() {
+  if (!currentUser || currentUser.isCommissioner) return;
+
+  // Check not already ready
+  var snap = await get(ref(db, "readyTeams"));
+  var data = snap.val() || {};
+  var already = Object.values(data).find(function(r) { return r.team === currentUser.team; });
+  if (already) return;
+
+  await push(ref(db, "readyTeams"), { team: currentUser.team });
+};
+
+window.goToLobby = function() {
+  // Reset ready teams and go to lobby phase
+  set(ref(db, "readyTeams"), null).then(function() {
+    update(ref(db, "draftState"), { phase: "lobby" }).then(function() {
+      goToScreen("lobbyScreen");
+      initLobby();
+    });
+  });
+};
+
+// readyTeams reset is now handled directly inside commForcePhase
 
 // ─────────────────────────────────────────────────────────────
 // PHASE 1 — SECURE PICK

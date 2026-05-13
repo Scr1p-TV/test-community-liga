@@ -72,7 +72,7 @@
         <hr/>
         <h3>Phasen manuell steuern</h3>
         <div class="comm-actions">
-          <button class="btn-phase" onclick="commForcePhase('securePick')">🔒 Secure Pick starten</button>
+          <button class="btn-phase" onclick="goToLobby()">🏠 Zur Lobby</button>
           <button class="btn-phase" onclick="revealSecurePicks()">👁️ Secure Picks aufdecken</button>
           <button class="btn-phase" onclick="commForcePhase('ban')">🚫 Ban Phase starten</button>
           <button class="btn-phase" onclick="commForcePhase('draft')">🏆 Draft Phase starten</button>
@@ -80,6 +80,36 @@
           <button class="btn-ghost" onclick="showScreen('banScreen')">→ Ban Phase ansehen</button>
           <button class="btn-ghost" onclick="showScreen('draftScreen')">→ Draft Board ansehen</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LOBBY ===== -->
+  <div id="lobbyScreen" class="screen">
+    <div class="lobby-box">
+      <div class="lobby-logo">UFL<span>DRAFT</span></div>
+      <div class="lobby-title">LOBBY</div>
+
+      <div id="lobbyTeamView">
+        <p class="lobby-sub">Bestätige deine Teilnahme um den Draft zu starten.</p>
+        <div id="lobbyMyStatus" class="lobby-my-status">
+          <button class="btn-ready" id="readyBtn" onclick="setReady()">✅ Ich bin bereit!</button>
+          <div id="readyConfirm" class="ready-confirm" style="display:none">🟢 Du bist bereit!</div>
+        </div>
+      </div>
+
+      <div id="lobbyCommView" style="display:none">
+        <p class="lobby-sub">Warte bis alle Teams bereit sind.</p>
+        <div id="readyStatus" class="ready-status-box"></div>
+        <button class="btn-start-draft" id="startDraftBtn" onclick="commForcePhase('securePick')" disabled>
+          🔒 Secure Pick starten
+        </button>
+        <p id="startHint" class="start-hint">Alle Teams müssen bereit sein.</p>
+      </div>
+
+      <div class="ready-progress">
+        <div id="readyList" class="ready-list"></div>
+        <div id="readyCount" class="ready-count">0 / 0 bereit</div>
       </div>
     </div>
   </div>
