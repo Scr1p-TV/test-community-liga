@@ -8,7 +8,7 @@ import { DEFAULT_PLAYERS } from "./players.js";
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
-const COMMISSIONER_PASSWORD = "admin1234";
+const COMMISSIONER_PASSWORD = "21j!w7La15A1hD";
 
 let currentUser     = null;
 let draftConfig     = null;
