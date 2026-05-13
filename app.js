@@ -97,6 +97,8 @@ window.commLogin = function() {
   document.getElementById("commPanel").style.display = "block";
   currentUser = { team: "Commissioner", isCommissioner: true };
   loadCommissionerPanel();
+  // Start ready listener immediately so commissioner sees team status in panel
+  initLobby();
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -324,7 +326,7 @@ function startTimer(displayId, onExpire) {
 var lobbyUnsubscribe = null;
 
 function initLobby() {
-  // Show correct view
+  // Show correct view on lobby screen
   var commView = document.getElementById("lobbyCommView");
   var teamView = document.getElementById("lobbyTeamView");
   if (commView) commView.style.display = currentUser.isCommissioner ? "block" : "none";
@@ -333,7 +335,7 @@ function initLobby() {
   // Unsubscribe previous listener to avoid duplicates
   if (lobbyUnsubscribe) { lobbyUnsubscribe(); lobbyUnsubscribe = null; }
 
-  // Load teams from config once, then subscribe to readyTeams
+  // Load teams from Firebase fresh, then subscribe to readyTeams
   get(ref(db, "draftConfig")).then(function(cSnap) {
     var c     = cSnap.val();
     var teams = c ? c.teams.map(function(t) { return t.name; }) : [];
@@ -344,13 +346,10 @@ function initLobby() {
       var total    = teams.length;
       var allReady = total > 0 && ready.length >= total;
 
-      // Ready count
-      var countEl = document.getElementById("readyCount");
-      if (countEl) countEl.textContent = ready.length + " / " + total + " bereit";
-
-      // Ready list — shown to everyone
-      var listEl = document.getElementById("readyList");
-      if (listEl) {
+      // Helper: build ready list HTML into any container element
+      function buildReadyList(listEl, countEl) {
+        if (countEl) countEl.textContent = ready.length + " / " + total + " bereit";
+        if (!listEl) return;
         listEl.innerHTML = "";
         teams.forEach(function(team) {
           var isReady  = ready.includes(team);
@@ -364,7 +363,23 @@ function initLobby() {
         });
       }
 
-      // Commissioner controls
+      // Write to lobby screen elements
+      buildReadyList(
+        document.getElementById("readyList"),
+        document.getElementById("readyCount")
+      );
+
+      // ALSO write to commissioner panel elements (always visible to commissioner)
+      buildReadyList(
+        document.getElementById("commReadyList"),
+        document.getElementById("commReadyCount")
+      );
+
+      // Commissioner panel start button
+      var commStartBtn = document.getElementById("commStartBtn");
+      if (commStartBtn) commStartBtn.disabled = !allReady;
+
+      // Lobby screen commissioner controls
       var startBtn  = document.getElementById("startDraftBtn");
       var startHint = document.getElementById("startHint");
       if (startBtn)  startBtn.disabled = !allReady;

@@ -70,10 +70,17 @@
           <button class="btn-warning" onclick="skipCurrentAction()">⏭️ Aktuellen Pick/Ban überspringen</button>
         </div>
         <hr/>
+        <h3>🏠 Lobby — Team Status</h3>
+        <div id="commReadyCount" class="comm-ready-count">0 / 0 bereit</div>
+        <div id="commReadyList" class="comm-ready-list"></div>
+        <div class="comm-actions" style="margin-top:12px">
+          <button class="btn-primary" id="commStartBtn" onclick="commForcePhase('securePick')" disabled>🔒 Secure Pick starten</button>
+          <button class="btn-secondary" onclick="goToLobby()">🔄 Lobby zurücksetzen</button>
+        </div>
+
+        <hr/>
         <h3>Phasen manuell steuern</h3>
         <div class="comm-actions">
-          <button class="btn-phase" onclick="viewLobby()">👁️ Lobby ansehen</button>
-          <button class="btn-phase" onclick="goToLobby()">🔄 Lobby zurücksetzen &amp; öffnen</button>
           <button class="btn-phase" onclick="revealSecurePicks()">👁️ Secure Picks aufdecken</button>
           <button class="btn-phase" onclick="commForcePhase('ban')">🚫 Ban Phase starten</button>
           <button class="btn-phase" onclick="commForcePhase('draft')">🏆 Draft Phase starten</button>
