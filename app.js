@@ -321,39 +321,40 @@ function startTimer(displayId, onExpire) {
 // ─────────────────────────────────────────────────────────────
 // LOBBY — Ready Up
 // ─────────────────────────────────────────────────────────────
+var lobbyUnsubscribe = null;
+
 function initLobby() {
-  // Show correct view for commissioner vs team
+  // Show correct view
   var commView = document.getElementById("lobbyCommView");
   var teamView = document.getElementById("lobbyTeamView");
   if (commView) commView.style.display = currentUser.isCommissioner ? "block" : "none";
   if (teamView) teamView.style.display = currentUser.isCommissioner ? "none"  : "block";
 
-  subscribeLobbyReady();
-}
+  // Unsubscribe previous listener to avoid duplicates
+  if (lobbyUnsubscribe) { lobbyUnsubscribe(); lobbyUnsubscribe = null; }
 
-function subscribeLobbyReady() {
-  onValue(ref(db, "readyTeams"), function(snap) {
-    var data      = snap.val() || {};
-    var readyList = Object.values(data); // [{ team }]
+  // Load teams from config once, then subscribe to readyTeams
+  get(ref(db, "draftConfig")).then(function(cSnap) {
+    var c     = cSnap.val();
+    var teams = c ? c.teams.map(function(t) { return t.name; }) : [];
 
-    get(ref(db, "draftConfig")).then(function(cSnap) {
-      var c      = cSnap.val();
-      var teams  = c ? c.teams.map(function(t) { return t.name; }) : [];
-      var total  = teams.length;
-      var ready  = readyList.map(function(r) { return r.team; });
+    lobbyUnsubscribe = onValue(ref(db, "readyTeams"), function(snap) {
+      var data     = snap.val() || {};
+      var ready    = Object.values(data).map(function(r) { return r.team; });
+      var total    = teams.length;
       var allReady = total > 0 && ready.length >= total;
 
-      // Update ready count
+      // Ready count
       var countEl = document.getElementById("readyCount");
       if (countEl) countEl.textContent = ready.length + " / " + total + " bereit";
 
-      // Update ready list
+      // Ready list — shown to everyone
       var listEl = document.getElementById("readyList");
       if (listEl) {
         listEl.innerHTML = "";
         teams.forEach(function(team) {
-          var isReady = ready.includes(team);
-          var item    = document.createElement("div");
+          var isReady  = ready.includes(team);
+          var item     = document.createElement("div");
           item.className = "ready-item" + (isReady ? " is-ready" : "");
           var nameEl   = document.createElement("span"); nameEl.className = "ri-name"; nameEl.textContent = team;
           var statusEl = document.createElement("span"); statusEl.className = "ri-status";
@@ -363,10 +364,10 @@ function subscribeLobbyReady() {
         });
       }
 
-      // Commissioner: enable start button only when all ready
+      // Commissioner controls
       var startBtn  = document.getElementById("startDraftBtn");
       var startHint = document.getElementById("startHint");
-      if (startBtn) startBtn.disabled = !allReady;
+      if (startBtn)  startBtn.disabled = !allReady;
       if (startHint) {
         startHint.textContent = allReady
           ? "Alle Teams sind bereit — Draft kann starten!"
@@ -374,9 +375,9 @@ function subscribeLobbyReady() {
         startHint.style.color = allReady ? "#22c55e" : "";
       }
 
-      // Team: show ready confirm if already clicked
+      // Team: toggle ready button
       if (!currentUser.isCommissioner) {
-        var myReady = ready.includes(currentUser.team);
+        var myReady      = ready.includes(currentUser.team);
         var readyBtn     = document.getElementById("readyBtn");
         var readyConfirm = document.getElementById("readyConfirm");
         if (readyBtn)     readyBtn.style.display     = myReady ? "none"  : "block";
@@ -399,13 +400,19 @@ window.setReady = async function() {
 };
 
 window.goToLobby = function() {
-  // Reset ready teams and go to lobby phase
+  // Reset ready teams and navigate to lobby
   set(ref(db, "readyTeams"), null).then(function() {
     update(ref(db, "draftState"), { phase: "lobby" }).then(function() {
       goToScreen("lobbyScreen");
       initLobby();
     });
   });
+};
+
+// Also allow commissioner to see lobby without resetting
+window.viewLobby = function() {
+  goToScreen("lobbyScreen");
+  initLobby();
 };
 
 // readyTeams reset is now handled directly inside commForcePhase
