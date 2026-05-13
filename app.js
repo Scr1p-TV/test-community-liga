@@ -565,18 +565,26 @@ function renderBanPlayers(bannedPlayers) {
   var el = document.getElementById("banPlayers");
   if (!el) return;
   el.innerHTML = "";
-  var secured = allSecurePicks.map(function(s) { return s.player; });
-  var excluded = bannedPlayers.concat(secured);
-  (draftConfig.playerPool || []).filter(function(p) {
-    return !excluded.includes(p) && p.toLowerCase().includes(search);
-  }).forEach(function(player) {
-    var div = document.createElement("div");
-    div.className = "player";
-    var nameSpan = document.createElement("span"); nameSpan.className = "player-name"; nameSpan.textContent = player;
-    var btn = document.createElement("button"); btn.className = "btn-ban"; btn.textContent = "Bannen";
-    btn.onclick = (function(p) { return function() { window.handleBanClick(p); }; })(player);
-    div.appendChild(nameSpan); div.appendChild(btn);
-    el.appendChild(div);
+
+  // Always reload secure picks fresh from Firebase to avoid timing issues
+  get(ref(db, "securePicks")).then(function(snap) {
+    var secureData = snap.val() || {};
+    var secured    = Object.values(secureData).map(function(s) { return s.player; });
+    // Update global too
+    allSecurePicks = Object.values(secureData);
+
+    var excluded = bannedPlayers.concat(secured);
+    (draftConfig.playerPool || []).filter(function(p) {
+      return !excluded.includes(p) && p.toLowerCase().includes(search);
+    }).forEach(function(player) {
+      var div = document.createElement("div");
+      div.className = "player";
+      var nameSpan = document.createElement("span"); nameSpan.className = "player-name"; nameSpan.textContent = player;
+      var btn = document.createElement("button"); btn.className = "btn-ban"; btn.textContent = "Bannen";
+      btn.onclick = (function(p) { return function() { window.handleBanClick(p); }; })(player);
+      div.appendChild(nameSpan); div.appendChild(btn);
+      el.appendChild(div);
+    });
   });
 }
 
@@ -587,6 +595,26 @@ window.handleBanClick = async function(player) {
   var state = snap.val();
   if (!state || state.phase !== "ban") return;
   if (!currentUser.isCommissioner && state.onTheClock !== currentUser.team) { alert("Du bist nicht dran!"); return; }
+
+  // Server-side validation: reload secure picks fresh from Firebase
+  var secureSnap   = await get(ref(db, "securePicks"));
+  var secureData   = secureSnap.val() || {};
+  var securedList  = Object.values(secureData).map(function(s) { return s.player; });
+
+  // Server-side validation: already banned
+  var banSnap      = await get(ref(db, "banPicks"));
+  var banData      = banSnap.val() || {};
+  var bannedList   = Object.values(banData).map(function(b) { return b.player; });
+
+  if (securedList.includes(player)) {
+    alert("'" + player + "' ist ein Secure Pick und kann nicht gebannt werden!");
+    return;
+  }
+  if (bannedList.includes(player)) {
+    alert("'" + player + "' wurde bereits gebannt!");
+    return;
+  }
+
   await push(ref(db, "banPicks"), { team: state.onTheClock, player: player });
   await advanceBan();
 };
@@ -722,36 +750,51 @@ function renderDraftBoard(picks) {
   }
 }
 
-// ── DRAFT PLAYERS — exclude secured + banned from pool ──
+// ── DRAFT PLAYERS — exclude secured + banned + drafted from pool ──
 function renderDraftPlayers(draftedPlayers) {
   if (!draftConfig) return;
-  var search   = document.getElementById("playerSearch") ? document.getElementById("playerSearch").value.toLowerCase() : "";
-  var el       = document.getElementById("players");
+  var search = document.getElementById("playerSearch") ? document.getElementById("playerSearch").value.toLowerCase() : "";
+  var el     = document.getElementById("players");
   if (!el) return;
   el.innerHTML = "";
 
-  var banned  = allBans.map(function(b) { return b.player; });
-  var secured = allSecurePicks.map(function(s) { return s.player; });
+  // Always reload all exclusion lists fresh from Firebase
+  Promise.all([
+    get(ref(db, "securePicks")),
+    get(ref(db, "banPicks")),
+    get(ref(db, "draftPicks"))
+  ]).then(function(results) {
+    var securedList = Object.values(results[0].val() || {}).map(function(s) { return s.player; });
+    var bannedList  = Object.values(results[1].val() || {}).map(function(b) { return b.player; });
+    var draftedList = Object.values(results[2].val() || {}).map(function(p) { return p.player; });
 
-  // Pool = all players MINUS drafted MINUS banned MINUS secured
-  (draftConfig.playerPool || []).filter(function(p) {
-    return !draftedPlayers.includes(p) && !banned.includes(p) && !secured.includes(p) && p.toLowerCase().includes(search);
-  }).forEach(function(player) {
-    var inQueue = pickQueue.includes(player);
-    var div  = document.createElement("div");
-    div.className = "player";
-    var nameSpan = document.createElement("span"); nameSpan.className = "player-name"; nameSpan.textContent = player;
-    var actions  = document.createElement("div"); actions.className = "player-actions";
-    var qBtn = document.createElement("button");
-    qBtn.className = "btn-queue" + (inQueue ? " queued" : "");
-    qBtn.textContent = "★";
-    qBtn.onclick = (function(p) { return function() { window.toggleQueue(p); }; })(player);
-    var dBtn = document.createElement("button");
-    dBtn.className = "btn-draft"; dBtn.textContent = "Draften";
-    dBtn.onclick = (function(p) { return function() { window.handleDraftClick(p); }; })(player);
-    actions.appendChild(qBtn); actions.appendChild(dBtn);
-    div.appendChild(nameSpan); div.appendChild(actions);
-    el.appendChild(div);
+    // Update globals
+    allSecurePicks = Object.values(results[0].val() || {});
+    allBans        = Object.values(results[1].val() || {}).map(function(b, i) { return Object.assign({}, b, { num: i + 1 }); });
+
+    // Pool = all MINUS secured MINUS banned MINUS drafted
+    (draftConfig.playerPool || []).filter(function(p) {
+      return !securedList.includes(p) &&
+             !bannedList.includes(p)  &&
+             !draftedList.includes(p) &&
+             p.toLowerCase().includes(search);
+    }).forEach(function(player) {
+      var inQueue  = pickQueue.includes(player);
+      var div      = document.createElement("div");
+      div.className = "player";
+      var nameSpan = document.createElement("span"); nameSpan.className = "player-name"; nameSpan.textContent = player;
+      var actions  = document.createElement("div"); actions.className = "player-actions";
+      var qBtn = document.createElement("button");
+      qBtn.className = "btn-queue" + (inQueue ? " queued" : "");
+      qBtn.textContent = "★";
+      qBtn.onclick = (function(p) { return function() { window.toggleQueue(p); }; })(player);
+      var dBtn = document.createElement("button");
+      dBtn.className = "btn-draft"; dBtn.textContent = "Draften";
+      dBtn.onclick = (function(p) { return function() { window.handleDraftClick(p); }; })(player);
+      actions.appendChild(qBtn); actions.appendChild(dBtn);
+      div.appendChild(nameSpan); div.appendChild(actions);
+      el.appendChild(div);
+    });
   });
 }
 
@@ -763,6 +806,30 @@ async function executePick(player) {
   var state = snap.val();
   if (!state || state.phase !== "draft") return;
   if (!currentUser.isCommissioner && state.onTheClock !== currentUser.team) { alert("Du bist nicht dran!"); return; }
+
+  // Server-side validation: reload all exclusion lists fresh from Firebase
+  var secureSnap  = await get(ref(db, "securePicks"));
+  var securedList = Object.values(secureSnap.val() || {}).map(function(s) { return s.player; });
+
+  var banSnap     = await get(ref(db, "banPicks"));
+  var bannedList  = Object.values(banSnap.val() || {}).map(function(b) { return b.player; });
+
+  var draftSnap   = await get(ref(db, "draftPicks"));
+  var draftedList = Object.values(draftSnap.val() || {}).map(function(p) { return p.player; });
+
+  if (securedList.includes(player)) {
+    alert("'" + player + "' ist ein Secure Pick und kann nicht gedraftet werden!");
+    return;
+  }
+  if (bannedList.includes(player)) {
+    alert("'" + player + "' wurde gebannt und kann nicht gedraftet werden!");
+    return;
+  }
+  if (draftedList.includes(player)) {
+    alert("'" + player + "' wurde bereits gedraftet!");
+    return;
+  }
+
   await push(ref(db, "draftPicks"), {
     team: state.onTheClock, player: player,
     pick: state.currentPick, round: Math.ceil(state.currentPick / state.numTeams)
