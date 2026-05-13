@@ -24,11 +24,9 @@
 
 ## SCHRITT 1 — Commissioner Password ändern
 
-In `app.js` Zeile 19:
-```js
-const COMMISSIONER_PASSWORD = "admin1234";
-```
-Ändere `admin1234` zu deinem eigenen Passwort.
+In `app.js` :
+
+Ändere `` zu deinem eigenen Passwort.
 
 ---
 
