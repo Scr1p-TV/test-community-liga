@@ -258,6 +258,48 @@
     </div>
   </div>
 
+  <!-- PLAYER CARD MODAL -->
+  <div id="cardModal" class="card-modal">
+    <div class="card-modal-backdrop" onclick="closeCard()"></div>
+    <div class="card-modal-inner">
+      <button class="card-close" onclick="closeCard()">×</button>
+      <div class="ufl-card" id="modalCard">
+        <div class="card-glow"></div>
+
+        <img class="league-logo" id="cardLeagueLogo"
+          src="https://upload.wikimedia.org/wikipedia/de/thumb/0/04/UFL_video_game_logo.png/240px-UFL_video_game_logo.png"
+          alt="UFL Community Liga"/>
+
+        <img class="player-image" id="cardPlayerImg" src="" alt="Spieler"
+          onerror="this.src='https://cdn.sofifa.net/players/notfound_0_120.png'"/>
+
+        <div class="bottom-panel">
+          <h2 id="cardPlayerName">NAME</h2>
+          <div class="meta">
+
+            <div class="meta-item">
+              <img id="cardNationImg" src="" alt="Nation"
+                onerror="this.style.opacity='.3'"/>
+              <span id="cardNationText">—</span>
+            </div>
+
+            <div class="meta-item">
+              <img id="cardLigaImg" src="" alt="Liga"
+                onerror="this.style.opacity='.3'"/>
+              <span id="cardLigaText">—</span>
+            </div>
+
+            <div class="meta-item">
+              <div id="cardPosBadge" class="pos-badge">—</div>
+              <span>POSITION</span>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="app.js"></script>
 </body>
 </html>

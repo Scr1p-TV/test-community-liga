@@ -3,7 +3,7 @@ import {
   getDatabase, ref, onValue, push, set, get, update, remove
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { firebaseConfig } from "./firebase-config.js";
-import { DEFAULT_PLAYERS } from "./players.js";
+import { DEFAULT_PLAYERS, PLAYER_DATA } from "./players.js";
 
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
@@ -513,10 +513,14 @@ function renderSecurePlayers(lockedPlayers) {
     div.className = "player";
     var nameSpan = document.createElement("span");
     nameSpan.className = "player-name"; nameSpan.textContent = player;
+    var secureActions = document.createElement("div"); secureActions.className = "player-actions";
+    var cBtnS = document.createElement("button"); cBtnS.className = "btn-card"; cBtnS.textContent = "🃏";
+    cBtnS.onclick = (function(p) { return function(e) { e.stopPropagation(); window.showCard(p); }; })(player);
     var btn = document.createElement("button");
     btn.className = "btn-draft"; btn.textContent = "Wählen";
     btn.onclick = (function(p) { return function() { securePickPlayer(p); }; })(player);
-    div.appendChild(nameSpan); div.appendChild(btn);
+    secureActions.appendChild(cBtnS); secureActions.appendChild(btn);
+    div.appendChild(nameSpan); div.appendChild(secureActions);
     el.appendChild(div);
   });
 }
@@ -1077,3 +1081,82 @@ function showPickAnimation(pick, type) {
 
 // ── Global config subscription ──
 onValue(ref(db, "draftConfig"), function(snap) { draftConfig = snap.val(); });
+
+// ─────────────────────────────────────────────────────────────
+// PLAYER CARD
+// ─────────────────────────────────────────────────────────────
+
+// Nation code map for flag images (flagcdn.com uses ISO 3166-1 alpha-2)
+var NATION_CODE = {
+  "Frankreich": "fr", "England": "gb-eng", "Spanien": "es", "Deutschland": "de",
+  "Brasilien": "br", "Argentinien": "ar", "Portugal": "pt", "Niederlande": "nl",
+  "Belgien": "be", "Norwegen": "no", "Polen": "pl", "Kroatien": "hr",
+  "Dänemark": "dk", "Uruguay": "uy", "Kolumbien": "co", "Schweiz": "ch",
+  "Österreich": "at", "Türkei": "tr", "Ungarn": "hu", "Schottland": "gb-sct",
+  "Ägypten": "eg", "Marokko": "ma", "Senegal": "sn", "Nigeria": "ng",
+  "Kamerun": "cm", "Ghana": "gh", "Elfenbeinküste": "ci", "Georgien": "ge",
+  "Südkorea": "kr", "Japan": "jp", "USA": "us", "Kanada": "ca",
+  "Mexiko": "mx", "Ecuador": "ec", "Guinea": "gn", "Serbien": "rs",
+  "Slowenien": "si", "Slowakei": "sk", "Armenien": "am", "Ukraine": "ua",
+  "Italien": "it", "Schweden": "se", "Finnland": "fi", "Norwegen": "no",
+  "Russland": "ru", "Tschechien": "cz", "Rumänien": "ro", "Griechenland": "gr",
+};
+
+var LIGA_FLAG = {
+  "England 1": "gb-eng",
+  "England 2": "gb-eng",
+  "Spanien 1": "es",
+  "Spanien 2": "es",
+  "Italien 1": "it",
+  "Italien 2": "it",
+  "Niederlande 1": "nl",
+  "Portugal 1": "pt",
+  "Österreich 1": "at",
+  "Belgien 1": "be",
+  "Frankreich 1": "fr",
+  "Polen 1": "pl",
+  "Schweiz 1": "ch",
+  "Rest der Welt": "un",
+};
+
+window.showCard = function(playerName) {
+  var data  = PLAYER_DATA[playerName];
+  var modal = document.getElementById("cardModal");
+  if (!modal) return;
+
+  document.getElementById("cardPlayerName").textContent = playerName.toUpperCase();
+
+  if (data) {
+    // Player photo
+    document.getElementById("cardPlayerImg").src =
+      "https://cdn.futwiz.com/assets/img/fc25/players/" + data.eaId + ".png";
+
+    // Nation flag (w80 for bigger display)
+    var nationCode = NATION_CODE[data.nation] || "un";
+    document.getElementById("cardNationImg").src = "https://flagcdn.com/w80/" + nationCode + ".png";
+    document.getElementById("cardNationText").textContent = data.nation.toUpperCase();
+
+    // Liga flag
+    var ligaCode = LIGA_FLAG[data.liga] || "un";
+    document.getElementById("cardLigaImg").src = "https://flagcdn.com/w80/" + ligaCode + ".png";
+    document.getElementById("cardLigaText").textContent = data.liga.toUpperCase();
+
+    // Position
+    document.getElementById("cardPosBadge").textContent = data.pos;
+
+  } else {
+    document.getElementById("cardPlayerImg").src = "https://cdn.sofifa.net/players/notfound_0_120.png";
+    document.getElementById("cardNationImg").src = "";
+    document.getElementById("cardNationText").textContent = "—";
+    document.getElementById("cardLigaImg").src = "";
+    document.getElementById("cardLigaText").textContent = "—";
+    document.getElementById("cardPosBadge").textContent = "?";
+  }
+
+  modal.classList.add("active");
+};
+
+window.closeCard = function() {
+  var modal = document.getElementById("cardModal");
+  if (modal) modal.classList.remove("active");
+};
