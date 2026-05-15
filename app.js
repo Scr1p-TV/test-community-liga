@@ -96,16 +96,17 @@ window.commLogin = function() {
   if (pw !== COMMISSIONER_PASSWORD) { err.textContent = "Falsches Passwort."; return; }
   document.getElementById("commPanel").style.display = "block";
   currentUser = { team: "Commissioner", isCommissioner: true };
-  loadCommissionerPanel();
-  // Start ready listener immediately so commissioner sees team status in panel
-  initLobby();
+  // loadCommissionerPanel loads draftConfig, then we start lobby listener
+  loadCommissionerPanel().then(function() {
+    initLobby();
+  });
 };
 
 // ─────────────────────────────────────────────────────────────
 // COMMISSIONER PANEL
 // ─────────────────────────────────────────────────────────────
 function loadCommissionerPanel() {
-  get(ref(db, "draftConfig")).then(function(snap) {
+  return get(ref(db, "draftConfig")).then(function(snap) {
     var c = snap.val();
     if (!c) {
       addTeamRow(); addTeamRow(); addTeamRow(); addTeamRow();

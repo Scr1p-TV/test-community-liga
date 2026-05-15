@@ -535,3 +535,175 @@ td:last-child { font-weight:600; }
   white-space: nowrap;
 }
 .btn-card:hover { background: rgba(0,140,255,.3); border-color: #60a5fa; }
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — Tablet (max 1024px) & Mobile (max 640px)
+══════════════════════════════════════════════════════════════ */
+
+/* ── TABLET (≤1024px) ── */
+@media (max-width: 1024px) {
+
+  /* Main grid: stack vertically */
+  main {
+    grid-template-columns: 1fr;
+    padding: 14px;
+    overflow-y: auto;
+    max-height: none;
+  }
+
+  main.single-col { padding: 14px; }
+
+  .right-col {
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  /* Header */
+  header { padding: 12px 16px; gap: 10px; flex-wrap: wrap; }
+  .header-left { gap: 10px; }
+  .timer { font-size: 40px; }
+  .logo { font-size: 24px; }
+
+  /* Board panel */
+  #boardPanel { max-height: none; overflow-y: visible; }
+  #banBoardPanel { max-height: none; overflow-y: visible; }
+
+  /* Commissioner box */
+  .commissioner-box { padding: 24px 20px; }
+
+  /* UFL Card modal — smaller on tablet */
+  .ufl-card { width: 340px; height: 580px; border-radius: 28px; }
+  .league-logo { width: 110px; }
+  .player-image { width: 280px; bottom: 140px; }
+  .bottom-panel { padding: 18px; }
+  .bottom-panel h2 { font-size: 40px; margin-bottom: 16px; }
+  .meta-item img { width: 44px; height: 44px; }
+  .pos-badge { width: 44px; height: 44px; font-size: 22px; }
+  .meta-item span { font-size: 12px; }
+}
+
+/* ── MOBILE (≤640px) ── */
+@media (max-width: 640px) {
+
+  /* Login */
+  .login-box { padding: 28px 20px; border-radius: 16px; margin: 16px; }
+  .login-logo { font-size: 36px; }
+
+  /* Lobby */
+  .lobby-box { padding: 28px 20px; margin: 16px; border-radius: 16px; }
+  .lobby-logo { font-size: 32px; }
+  .btn-ready { font-size: 15px; padding: 14px; }
+  .btn-start-draft { font-size: 15px; padding: 14px; }
+
+  /* Commissioner */
+  #commissionerScreen { padding: 16px; }
+  .commissioner-box { padding: 20px 16px; }
+  .commissioner-box h2 { font-size: 22px; }
+  .comm-actions { flex-direction: column; }
+  .btn-phase, .btn-danger, .btn-warning, .btn-secondary { width: 100%; }
+
+  /* Header — compact */
+  header {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .header-left { order: 1; flex: 1; min-width: 0; gap: 8px; }
+  .header-center { order: 2; }
+  .header-right { order: 3; flex: 1; justify-content: flex-end; }
+  .logo { font-size: 20px; letter-spacing: 2px; }
+  .timer { font-size: 36px; min-width: 50px; }
+  .timer-label { font-size: 8px; letter-spacing: 1px; }
+  .pick-info { font-size: 10px; }
+  .pick-info strong { font-size: 12px; }
+  .phase-badge { font-size: 11px; padding: 3px 8px; }
+  .user-info { font-size: 11px; }
+  .btn-ghost.small { font-size: 11px; padding: 5px 10px; }
+
+  /* Main */
+  main { padding: 10px; gap: 12px; }
+
+  /* Panels */
+  .panel { padding: 14px; border-radius: 10px; }
+  .panel h2 { font-size: 16px; margin-bottom: 10px; }
+  .panel h3 { font-size: 11px; }
+
+  /* Table */
+  th { font-size: 10px; padding: 6px 8px; }
+  td { font-size: 12px; padding: 8px; }
+
+  /* Round tabs */
+  .round-tabs { gap: 4px; }
+  .round-tab { font-size: 11px; padding: 3px 10px; }
+
+  /* Player cards */
+  .player { padding: 8px 10px; border-radius: 8px; }
+  .player-name { font-size: 13px; }
+  .btn-draft { padding: 5px 10px; font-size: 11px; }
+  .btn-ban { padding: 5px 10px; font-size: 11px; }
+  .btn-queue { padding: 5px 8px; font-size: 12px; }
+  .btn-card { padding: 4px 6px; font-size: 11px; }
+
+  /* Search */
+  .search-input { padding: 7px 10px; font-size: 13px; }
+
+  /* Order items */
+  .order-item { padding: 7px 10px; font-size: 12px; }
+  .order-pick-num { font-size: 10px; }
+
+  /* Queue */
+  .queue-item { padding: 7px 10px; }
+  .queue-pos { font-size: 16px; }
+  .queue-name { font-size: 12px; }
+
+  /* Secure pick */
+  .secure-status { font-size: 12px; padding: 7px 12px; }
+  .picked-name { font-size: 28px; }
+  .secure-result-row { flex-wrap: wrap; gap: 6px; }
+  .sr-player { font-size: 13px; }
+
+  /* Ban current team banner */
+  .on-clock-banner { font-size: 13px; padding: 10px 12px; }
+  .your-turn { font-size: 14px; }
+
+  /* Ready list */
+  .ready-item { padding: 8px 12px; font-size: 13px; }
+
+  /* Pick animation overlay */
+  .pick-card { padding: 32px 24px; border-radius: 16px; }
+  .pick-player { font-size: 48px; }
+  .pick-badge { font-size: 12px; letter-spacing: 3px; }
+  .pick-team { font-size: 14px; }
+
+  /* UFL Card modal */
+  .card-modal-inner { margin: 16px; }
+  .ufl-card {
+    width: min(300px, calc(100vw - 64px));
+    height: min(520px, calc(100vh - 120px));
+    border-radius: 24px;
+  }
+  .league-logo { width: 90px; top: 14px; }
+  .player-image { width: 220px; bottom: 120px; }
+  .bottom-panel { padding: 14px; }
+  .bottom-panel h2 { font-size: 32px; margin-bottom: 12px; }
+  .meta { gap: 8px; }
+  .meta-item { padding: 10px 6px; border-radius: 12px; }
+  .meta-item img { width: 36px; height: 36px; margin-bottom: 6px; }
+  .pos-badge { width: 36px; height: 36px; font-size: 18px; margin-bottom: 6px; }
+  .meta-item span { font-size: 10px; letter-spacing: 0.5px; }
+
+  /* Commissioner ready list */
+  .comm-ready-list .ready-item { padding: 7px 10px; }
+}
+
+/* ── VERY SMALL (≤380px — iPhone SE etc.) ── */
+@media (max-width: 380px) {
+  .login-box { padding: 24px 16px; }
+  .timer { font-size: 30px; }
+  .logo { font-size: 18px; }
+  .ufl-card {
+    width: calc(100vw - 48px);
+    height: calc(100vh - 100px);
+  }
+  .bottom-panel h2 { font-size: 26px; }
+}
