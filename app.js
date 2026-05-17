@@ -1076,6 +1076,14 @@ function showPickAnimation(pick, type) {
   else card.classList.add("card-draft");
 
   overlay.classList.add("active");
+
+  // Also show the UFL player card for draft picks
+  if (type === "PICK" && pick.player) {
+    setTimeout(function() {
+      window.showCard(pick.player);
+    }, 400); // slight delay so overlay appears first
+  }
+
   setTimeout(function() { overlay.classList.remove("active"); }, 3500);
   overlay.onclick = function() { overlay.classList.remove("active"); };
 }

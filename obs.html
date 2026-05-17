@@ -563,37 +563,78 @@
     let speechQueue  = [];
     let isSpeaking   = false;
 
-    // OBS requires a user interaction to unlock audio.
-    // Clicking the activate button OR anywhere on the page unlocks it.
-    window.activateAudio = function() {
-      if (audioEnabled) return;
-      audioEnabled = true;
-      document.getElementById("audioActivate").classList.add("hidden");
-      // Unlock Web Speech API with a silent utterance first
-      const unlock = new SpeechSynthesisUtterance(" ");
-      unlock.volume = 0;
-      window.speechSynthesis.speak(unlock);
-      unlock.onend = function() {
-        speak("Audio aktiviert. Bereit für den Draft.");
-      };
-    };
+    // ── OBS AUDIO UNLOCK ──
+    // OBS 28+ supports "Allow autoplay" in browser source settings.
+    // We also try multiple unlock strategies for older OBS versions.
 
-    // Also unlock on any click anywhere (OBS tip: interact with page once)
+    function tryUnlockAudio() {
+      if (audioEnabled) return;
+
+      // Strategy 1: AudioContext unlock (works in OBS without click)
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === "suspended") {
+          ctx.resume();
+        }
+      } catch(e) {}
+
+      // Strategy 2: Silent speech utterance
+      if (window.speechSynthesis) {
+        const unlock = new SpeechSynthesisUtterance(" ");
+        unlock.volume = 0;
+        unlock.lang = "de-DE";
+        window.speechSynthesis.speak(unlock);
+        unlock.onend = function() {
+          audioEnabled = true;
+          document.getElementById("audioActivate").classList.add("hidden");
+          console.log("Audio unlocked via speech");
+          processQueue();
+        };
+        unlock.onerror = function() {
+          // Will retry on click
+        };
+      }
+    }
+
+    // Try unlock immediately on page load (works if OBS "Allow autoplay" is enabled)
+    window.addEventListener("load", function() {
+      setTimeout(tryUnlockAudio, 1000);
+    });
+
+    // Also unlock on any interaction
     document.addEventListener("click", function() {
-      if (!audioEnabled) window.activateAudio();
+      if (!audioEnabled) {
+        audioEnabled = true;
+        document.getElementById("audioActivate").classList.add("hidden");
+        speak("Audio aktiviert.");
+      }
     }, { once: true });
 
-    // Pre-load voices as soon as possible
+    window.activateAudio = function() {
+      audioEnabled = true;
+      document.getElementById("audioActivate").classList.add("hidden");
+      const unlock = new SpeechSynthesisUtterance("Audio aktiviert. Bereit für den Draft.");
+      unlock.lang = "de-DE";
+      window.speechSynthesis.speak(unlock);
+    };
+
+    // Pre-load German voices
     if (window.speechSynthesis) {
       window.speechSynthesis.getVoices();
       window.speechSynthesis.addEventListener("voiceschanged", function() {
         window.speechSynthesis.getVoices();
+        // Retry unlock after voices load
+        if (!audioEnabled) tryUnlockAudio();
       });
     }
 
     function speak(text) {
-      if (!audioEnabled || !window.speechSynthesis) return;
-      // Cancel any stuck synthesis
+      if (!window.speechSynthesis) return;
+      if (!audioEnabled) {
+        // Queue it anyway — will play once unlocked
+        speechQueue.push(text);
+        return;
+      }
       if (window.speechSynthesis.paused) window.speechSynthesis.resume();
       speechQueue.push(text);
       processQueue();
@@ -601,6 +642,7 @@
 
     function processQueue() {
       if (isSpeaking || speechQueue.length === 0) return;
+      if (!audioEnabled) return;
       isSpeaking = true;
       const text = speechQueue.shift();
       const utt  = new SpeechSynthesisUtterance(text);
@@ -609,24 +651,12 @@
       utt.pitch  = 1.0;
       utt.volume = 1.0;
 
-      // Pick best German voice
       const voices = window.speechSynthesis.getVoices();
       const german = voices.find(v => v.lang === "de-DE" && v.localService) ||
                      voices.find(v => v.lang === "de-DE") ||
                      voices.find(v => v.lang && v.lang.startsWith("de"));
       if (german) utt.voice = german;
 
-      utt.onend = function() {
-        isSpeaking = false;
-        setTimeout(processQueue, 300);
-      };
-      utt.onerror = function(e) {
-        console.warn("Speech error:", e.error);
-        isSpeaking = false;
-        setTimeout(processQueue, 300);
-      };
-
-      // Watchdog: if synthesis hangs for >10s, force next
       const watchdog = setTimeout(function() {
         if (isSpeaking) {
           window.speechSynthesis.cancel();
@@ -634,6 +664,7 @@
           processQueue();
         }
       }, 10000);
+
       utt.onend = utt.onerror = function() {
         clearTimeout(watchdog);
         isSpeaking = false;
